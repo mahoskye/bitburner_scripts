@@ -1,0 +1,142 @@
+ns.alert
+ns.alterReality
+ns.args = 
+ns.asleep
+ns.atExit
+ns.bladeburner = [object Object]
+ns.brutessh
+ns.bypass
+ns.clear
+ns.clearLog
+ns.clearPort
+ns.closeTail
+ns.codingcontract = [object Object]
+ns.corporation = [object Object]
+ns.deleteServer
+ns.disableLog
+ns.enableLog
+ns.enums = [object Object]
+ns.exec
+ns.exit
+ns.exploit
+ns.fileExists
+ns.flags
+ns.formatNumber
+ns.formatPercent
+ns.formatRam
+ns.formulas = [object Object]
+ns.ftpcrack
+ns.gang = [object Object]
+ns.getBitNodeMultipliers
+ns.getFavorToDonate
+ns.getFunctionRamCost
+ns.getGrowTime
+ns.getHackingLevel
+ns.getHackingMultipliers
+ns.getHacknetMultipliers
+ns.getHackTime
+ns.getHostname
+ns.getMoneySources
+ns.getPlayer
+ns.getPortHandle
+ns.getPurchasedServerCost
+ns.getPurchasedServerLimit
+ns.getPurchasedServerMaxRam
+ns.getPurchasedServers
+ns.getPurchasedServerUpgradeCost
+ns.getRecentScripts
+ns.getResetInfo
+ns.getRunningScript
+ns.getScriptExpGain
+ns.getScriptIncome
+ns.getScriptLogs
+ns.getScriptName
+ns.getScriptRam
+ns.getServer
+ns.getServerBaseSecurityLevel
+ns.getServerGrowth
+ns.getServerMaxMoney
+ns.getServerMaxRam
+ns.getServerMinSecurityLevel
+ns.getServerMoneyAvailable
+ns.getServerNumPortsRequired
+ns.getServerRam
+ns.getServerRequiredHackingLevel
+ns.getServerSecurityLevel
+ns.getServerUsedRam
+ns.getSharePower
+ns.getTimeSinceLastAug
+ns.getTotalScriptExpGain
+ns.getTotalScriptIncome
+ns.getWeakenTime
+ns.grafting = [object Object]
+ns.grow
+ns.growthAnalyze
+ns.growthAnalyzeSecurity
+ns.hack
+ns.hackAnalyze
+ns.hackAnalyzeChance
+ns.hackAnalyzeSecurity
+ns.hackAnalyzeThreads
+ns.hacknet = [object Object]
+ns.hasRootAccess
+ns.hasTorRouter
+ns.heart = [object Object]
+ns.httpworm
+ns.infiltration = [object Object]
+ns.isLogEnabled
+ns.isRunning
+ns.kill
+ns.killall
+ns.ls
+ns.moveTail
+ns.mv
+ns.nFormat
+ns.nuke
+ns.openDevMenu
+ns.peek
+ns.pid = 107
+ns.print
+ns.printf
+ns.printRaw
+ns.prompt
+ns.ps
+ns.purchaseServer
+ns.rainbow
+ns.read
+ns.readPort
+ns.relaysmtp
+ns.renamePurchasedServer
+ns.resizeTail
+ns.rm
+ns.run
+ns.scan
+ns.scp
+ns.scriptKill
+ns.scriptRunning
+ns.serverExists
+ns.setTitle
+ns.share
+ns.singularity = [object Object]
+ns.sleep
+ns.sleeve = [object Object]
+ns.spawn
+ns.sprintf
+ns.sqlinject
+ns.stanek = [object Object]
+ns.stock = [object Object]
+ns.tail
+ns.tFormat
+ns.toast
+ns.tprint
+ns.tprintf
+ns.tprintRaw
+ns.tryWritePort
+ns.ui = [object Object]
+ns.upgradePurchasedServer
+ns.vsprintf
+ns.weaken
+ns.weakenAnalyze
+ns.wget
+ns.write
+ns.writePort
