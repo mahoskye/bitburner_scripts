@@ -1,0 +1,12 @@
+{
+  "folders": [
+    {
+      "path": "."
+    }
+  ],
+  "settings": {
+    "bitburner.authToken": "",
+    "bitburner.scriptRoot": "./game-scripts/",
+    "bitburner.fileWatcher.enable": false
+  }
+}
