@@ -30,6 +30,7 @@ jspm_packages/
 .vscode/
 .idea/
 .code-workspace
+*.code-workspace*
 
 # MacOS specific files
 .DS_Store
