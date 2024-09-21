@@ -188,11 +188,17 @@ export async function main(ns) {
         }
 
         // Wait until we have enough money for the next action
+        let newNodePurchased = false;
         while (next.cost > getMyMoney()) {
             // Check if we can purchase a new node while waiting
             if (getMyMoney() > ns.hacknet.getPurchaseNodeCost() && numNodes < NODE_LIMIT) {
-                ns.hacknet.purchaseNode();
-                break; // Exit the loop to re-evaluate actions
+                const newNode = ns.hacknet.purchaseNode();
+                if (newNode !== -1) {
+                    upgradableNodes.add(newNode);
+                    ns.print(`Purchased new node ${newNode} while waiting for funds.`);
+                    newNodePurchased = true;
+                    break; // Exit the loop to re-evaluate actions
+                }
             }
 
             ns.print(
@@ -202,8 +208,10 @@ export async function main(ns) {
             await ns.sleep(2000);
         }
 
+        if (newNodePurchased) continue;
+
         // Perform the action if we have enough money
-        if (next.cost < getMyMoney()) {
+        if (next.cost <= getMyMoney()) {
             try {
                 next.action.action(...next.action.args);
                 ns.print(`Performed action: ${next.action.name} on node ${next.node}`);
