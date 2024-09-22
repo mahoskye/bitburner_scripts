@@ -10,7 +10,7 @@ export async function main(ns) {
             { name: "HTTPWorm.exe", action: ns.httpworm },
             { name: "SQLInject.exe", action: ns.sqlinject },
         ],
-        BOT_SCRIPT: "early-hack-template.js",
+        BOT_SCRIPT: "bot-worker.js",
         SERVER_INFO_FILE: "/servers/server_info.txt",
         BACKDOOR_SCRIPT: "backdoor-manager.js",
         DISCOVERY_SCRIPT: "server-discovery.js",
@@ -111,19 +111,45 @@ export async function main(ns) {
 
     function deployScript(server) {
         // Deploy and run the bot script on a server
-        if (!ns.hasRootAccess(server.hostname) || !server.canRunScripts || server.maxRam < BOT_SCRIPT_RAM) return false;
+        if (!ns.hasRootAccess(server.hostname)) {
+            ns.print(`No root access on ${server.hostname}. Skipping deployment.`);
+            return false;
+        }
+        if (!server.canRunScripts) {
+            ns.print(`${server.hostname} cannot run scripts. Skipping deployment.`);
+            return false;
+        }
+        if (server.maxRam < BOT_SCRIPT_RAM) {
+            ns.print(`${server.hostname} has insufficient RAM (${server.maxRam} GB). Skipping deployment.`);
+            return false;
+        }
 
-        ns.scp(CONFIG.BOT_SCRIPT, server.hostname);
+        // Check if the bot script exists on the home server
+        if (!ns.fileExists(CONFIG.BOT_SCRIPT, CONFIG.HOME_SERVER)) {
+            ns.tprint(`ERROR: Bot script ${CONFIG.BOT_SCRIPT} not found on ${CONFIG.HOME_SERVER}.`);
+            return false;
+        }
+
+        // Attempt to copy the script to the target server
+        if (!ns.scp(CONFIG.BOT_SCRIPT, server.hostname)) {
+            ns.tprint(`ERROR: Failed to copy ${CONFIG.BOT_SCRIPT} to ${server.hostname}.`);
+            return false;
+        }
+
+        // Kill the script if it's already running
         if (ns.scriptRunning(CONFIG.BOT_SCRIPT, server.hostname)) {
             ns.scriptKill(CONFIG.BOT_SCRIPT, server.hostname);
         }
 
         const threads = calculateThreads(server.hostname);
-        if (ns.exec(CONFIG.BOT_SCRIPT, server.hostname, threads)) {
-            ns.tprint(`Deployed ${CONFIG.BOT_SCRIPT} on ${server.hostname} with ${threads} threads`);
+        const pid = ns.exec(CONFIG.BOT_SCRIPT, server.hostname, threads);
+        if (pid !== 0) {
+            ns.tprint(`Deployed ${CONFIG.BOT_SCRIPT} on ${server.hostname} with ${threads} threads (PID: ${pid})`);
             return true;
+        } else {
+            ns.tprint(`ERROR: Failed to execute ${CONFIG.BOT_SCRIPT} on ${server.hostname}.`);
+            return false;
         }
-        return false;
     }
 
     function calculateThreads(server) {
