@@ -14,6 +14,7 @@ export async function main(ns) {
     const MONEY_RESERVE = 1000000; // Amount of money to keep in reserve
 
     // Sets to keep track of statuses
+    let isSetup = true;
     const completedNodes = new Set();
     const upgradableNodes = new Set(
         Array.from({ length: ns.hacknet.numNodes() }, (_, i) => i).filter((node) => !checkNodeCompletion(node))
@@ -33,7 +34,7 @@ export async function main(ns) {
 
         if (isComplete) {
             completedNodes.add(node);
-            upgradableNodes.delete(node);
+            if (!isSetup) upgradableNodes.delete(node);
             ns.toast(nodeStats.name + " Has been fully upgraded!!", "success", 2000);
             return true;
         }
@@ -154,10 +155,15 @@ export async function main(ns) {
         return actionQueue.shift();
     }
 
+    if (ns.hacknet.numNodes() < 1) await purchaseNodeChunk();
+    isSetup = false;
+
     // Main Loop
     while (true) {
         const numNodes = ns.hacknet.numNodes();
+
         updateNodeStatus();
+
         ns.print(
             `Current nodes: ${numNodes}, ` +
                 `Completed nodes: ${completedNodes.size}, ` +
