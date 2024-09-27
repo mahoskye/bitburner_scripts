@@ -51,7 +51,7 @@ export async function main(ns) {
         const servers = scanNetwork("home");
         const outputPath = "/servers/server_info.txt";
         await ns.write(outputPath, JSON.stringify(servers, null, 2), "w");
-        ns.tprint(`SUCCESS: Discovered and stored information for ${servers.length} servers in ${outputPath}`);
+        ns.toast(`SUCCESS: Discovered and stored information for ${servers.length} servers in ${outputPath}`);
     } catch (error) {
         ns.tprint(`CRITICAL ERROR: Script failed: ${error.message}`);
     }
