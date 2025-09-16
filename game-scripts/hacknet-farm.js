@@ -11,7 +11,7 @@ export async function main(ns) {
     const NODE_MAX_CORES = 16;
     const NODE_CHUNK_SIZE = 3; // Number of nodes to purchase at once
     const LEVEL_CHUNK_SIZE = 5; // Number of levels to upgrade at once
-    const MONEY_RESERVE = 1000000; // Amount of money to keep in reserve
+    const MONEY_RESERVE = 200000; // Amount of money to keep in reserve
 
     // Sets to keep track of statuses
     let isSetup = true;
