@@ -1,6 +1,6 @@
 /** @param {NS} ns **/
 export async function main(ns) {
-  const portNumbers = ns.args.length > 0 ? ns.args : [1]; // Default to port 1 if no args
+  const portNumbers = ns.args.length > 0 ? ns.args : [1, 2]; // Default to ports 1 and 2 if no args
   const popupId = "multi-port-monitor-popup";
 
   // Flag to control the main loop
@@ -121,9 +121,28 @@ export async function main(ns) {
       const portValue = ns.peek(portNumber);
       const portElement = document.getElementById(`port-${portNumber}-value`);
       if (portElement) {
-        portElement.textContent = `Port ${portNumber}: ${
-          portValue !== "NULL PORT DATA" ? portValue : "No Data"
-        }`;
+        if (portNumber === 2 && portValue !== "NULL PORT DATA") {
+          // Special formatting for status port
+          try {
+            const statusData = JSON.parse(portValue);
+            const minutes = Math.floor(statusData.nextDiscovery / 60);
+            const seconds = statusData.nextDiscovery % 60;
+            portElement.innerHTML = `
+              <div>Status (Port ${portNumber}):</div>
+              <div style="margin-left: 10px;">
+                Next Discovery: ${minutes}m ${seconds}s<br>
+                Interval: ${statusData.discoveryInterval}s<br>
+                Hack Level: ${statusData.hackLevel}
+              </div>
+            `;
+          } catch (e) {
+            portElement.textContent = `Port ${portNumber}: ${portValue}`;
+          }
+        } else {
+          portElement.textContent = `Port ${portNumber}: ${
+            portValue !== "NULL PORT DATA" ? portValue : "No Data"
+          }`;
+        }
       }
     });
     await ns.sleep(1000); // Update every second

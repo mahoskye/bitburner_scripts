@@ -14,10 +14,19 @@ export async function main(ns) {
         },
         PORTS: {
             WORKER: 1,
+            STATUS: 2, // Port for status updates
         },
         INTERVALS: {
             HACK_LEVEL: 50,
             MAIN_LOOP: 10000, // 10 seconds
+        },
+        getDiscoveryInterval() {
+            const hackLevel = ns.getHackingLevel();
+            // Scale from 30 seconds (early) to 10 minutes (late game)
+            if (hackLevel < 50) return 30000;   // Every 30 seconds early game
+            if (hackLevel < 200) return 120000; // Every 2 minutes mid-early
+            if (hackLevel < 500) return 300000; // Every 5 minutes mid game
+            return 600000;                      // Every 10 minutes late game
         },
         TARGETS: {
             DEFAULT: "n00dles",
@@ -26,6 +35,31 @@ export async function main(ns) {
 
     ns.disableLog("sleep");
     ns.disableLog("exec");
+
+    // Check if server info file exists, if not run server discovery first
+    if (!ns.fileExists(CONFIG.FILES.SERVER_LIST)) {
+        ns.tprint("Server info file not found. Running server discovery first...");
+        const discoveryPid = ns.exec(CONFIG.SCRIPTS.SERVER_DISCOVERY, "home");
+        if (discoveryPid === 0) {
+            ns.tprint(`ERROR: Could not run ${CONFIG.SCRIPTS.SERVER_DISCOVERY}`);
+            ns.tprint(`Please run 'run ${CONFIG.SCRIPTS.SERVER_DISCOVERY}' manually first`);
+            return;
+        }
+
+        // Wait for server discovery to complete
+        while (ns.isRunning(discoveryPid)) {
+            await ns.sleep(1000);
+        }
+
+        // Double-check the file was created
+        if (!ns.fileExists(CONFIG.FILES.SERVER_LIST)) {
+            ns.tprint(`ERROR: Server discovery completed but ${CONFIG.FILES.SERVER_LIST} was not created`);
+            ns.tprint("Please check that the /servers/ directory exists and run server-discovery.js manually");
+            return;
+        }
+
+        ns.tprint("Server discovery completed successfully!");
+    }
 
     // Check and run startup scripts
     await checkAndRunScript(CONFIG.SCRIPTS.HACKNET, "Initialized Hacknet farm");
@@ -37,10 +71,13 @@ export async function main(ns) {
     ns.print("Completed initial Hack Manager run");
 
     let lastHackLevel = Math.floor(ns.getHackingLevel() / CONFIG.INTERVALS.HACK_LEVEL) * CONFIG.INTERVALS.HACK_LEVEL;
+    let lastDiscoveryTime = 0;
 
     while (true) {
-        // Check if it's time to run Hack Manager again
+        const currentTime = Date.now();
         const currentHackLevel = ns.getHackingLevel();
+
+        // Check if it's time to run Hack Manager again
         if (
             Math.floor(currentHackLevel / CONFIG.INTERVALS.HACK_LEVEL) >
             Math.floor(lastHackLevel / CONFIG.INTERVALS.HACK_LEVEL)
@@ -50,8 +87,24 @@ export async function main(ns) {
             ns.print(`Ran Hack Manager at hack level ${lastHackLevel}`);
         }
 
-        // Run server discovery
-        await runServerDiscovery();
+        // Run server discovery based on dynamic interval
+        const discoveryInterval = CONFIG.getDiscoveryInterval();
+        if (currentTime - lastDiscoveryTime >= discoveryInterval) {
+            await runServerDiscovery();
+            lastDiscoveryTime = currentTime;
+            ns.print(`Server discovery completed (next in ${discoveryInterval/1000}s)`);
+        }
+
+        // Update status port with discovery timer info
+        const timeUntilNextDiscovery = Math.max(0, discoveryInterval - (currentTime - lastDiscoveryTime));
+        const statusInfo = {
+            nextDiscovery: Math.ceil(timeUntilNextDiscovery / 1000),
+            discoveryInterval: discoveryInterval / 1000,
+            hackLevel: currentHackLevel,
+            lastUpdate: currentTime
+        };
+        ns.clearPort(CONFIG.PORTS.STATUS);
+        ns.writePort(CONFIG.PORTS.STATUS, JSON.stringify(statusInfo));
 
         // Update best target
         updateBestTarget(ns);
