@@ -5,8 +5,41 @@ export async function main(ns) {
 
     // Check if backdoor function is available
     if (typeof ns.installBackdoor !== "function") {
-        ns.tprint("Backdoor functionality is not yet available.");
+        ns.tprint("Singularity functions require Source-File 4 (late game).");
+        ns.tprint("Backdoors must be installed manually using 'backdoor' terminal command.");
+
+        // Instead, show which servers need backdoors
+        showBackdoorTargets();
         return;
+    }
+
+    function showBackdoorTargets() {
+        const factionServers = ["CSEC", "avmnite-02h", "I.I.I.I", "run4theh111z"];
+        ns.tprint("=== MANUAL BACKDOOR TARGETS ===");
+
+        try {
+            const fileContents = ns.read(serverInfoFile);
+            if (fileContents) {
+                const serverInfo = JSON.parse(fileContents);
+                const targets = serverInfo.filter(server =>
+                    factionServers.includes(server.hostname) &&
+                    server.hasRootAccess &&
+                    !server.backdoorInstalled &&
+                    ns.getHackingLevel() >= server.requiredHackingSkill
+                );
+
+                if (targets.length > 0) {
+                    targets.forEach(server => {
+                        ns.tprint(`• ${server.hostname} (Hack Level: ${server.requiredHackingSkill})`);
+                        ns.tprint(`  Commands: connect ${server.hostname}; backdoor; home`);
+                    });
+                } else {
+                    ns.tprint("No faction servers ready for backdoor installation.");
+                }
+            }
+        } catch (e) {
+            ns.tprint("Could not read server info file.");
+        }
     }
 
     // Read server info
