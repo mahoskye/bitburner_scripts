@@ -70,6 +70,7 @@ export async function main(ns) {
         init() {
             this.cleanup();
             this.createUI();
+            // Start the update loop but don't await it here
             this.startMonitoring();
         }
 
@@ -136,9 +137,27 @@ export async function main(ns) {
         }
 
         close() {
+            try {
+                this.ns.tprint("Port Monitor: User clicked close button");
+            } catch (e) {
+                // Script may already be killed, ignore
+            }
+
             this.isRunning = false;
+
             if (this.popup) {
                 this.popup.remove();
+                try {
+                    this.ns.tprint("Port Monitor: UI removed from DOM");
+                } catch (e) {
+                    // Script may already be killed, ignore
+                }
+            }
+
+            try {
+                this.ns.tprint("Port Monitor: Script termination initiated");
+            } catch (e) {
+                // Script may already be killed, ignore
             }
         }
 
@@ -186,8 +205,21 @@ export async function main(ns) {
             if (portNumber === 2) {
                 try {
                     const statusData = JSON.parse(portValue);
-                    const minutes = Math.floor(statusData.nextDiscovery / 60);
-                    const seconds = statusData.nextDiscovery % 60;
+
+                    // Calculate current time remaining based on when the data was last updated
+                    const currentTime = Date.now();
+                    const timeSinceUpdate = Math.floor((currentTime - statusData.lastUpdate) / 1000);
+                    const adjustedTimeRemaining = Math.max(0, statusData.nextDiscovery - timeSinceUpdate);
+
+                    const minutes = Math.floor(adjustedTimeRemaining / 60);
+                    const seconds = adjustedTimeRemaining % 60;
+
+                    // Debug: Check sync occasionally
+                    if (Math.random() < 0.1) { // 10% chance to log
+                        try {
+                            this.ns.print(`SYNC DEBUG: Original=${statusData.nextDiscovery}s, TimeSince=${timeSinceUpdate}s, Adjusted=${adjustedTimeRemaining}s`);
+                        } catch (e) {}
+                    }
 
                     return `
                         <div style="color: #00ddff; font-weight: bold;">System Status</div>
@@ -198,7 +230,7 @@ export async function main(ns) {
                         </div>
                     `;
                 } catch (e) {
-                    return `<div>Port ${portNumber}: <span style="color: #ff6666;">[Invalid JSON]</span></div>`;
+                    return `<div>Port ${portNumber}: <span style="color: #ff6666;">[Invalid JSON: ${e.message}]</span></div>`;
                 }
             }
 
@@ -207,31 +239,88 @@ export async function main(ns) {
         }
 
         updateDisplay() {
-            if (this.isMinimized) return;
-
-            this.contentElement.innerHTML = "";
-
-            this.portNumbers.forEach(portNumber => {
-                const portValue = this.ns.peek(portNumber);
-                const portItem = this.createElement("div", null, config.styles.portItem);
-                portItem.innerHTML = this.formatPortData(portNumber, portValue);
-                this.contentElement.appendChild(portItem);
-            });
-        }
-
-        async startMonitoring() {
-            this.ns.tprint(`Port Monitor started - monitoring ports: ${this.portNumbers.join(", ")}`);
-
-            while (this.isRunning) {
-                this.updateDisplay();
-                await this.ns.sleep(config.updateInterval);
+            if (this.isMinimized) {
+                try { this.ns.print("DEBUG: Skipping update - minimized"); } catch (e) {}
+                return;
             }
 
-            this.ns.tprint("Port Monitor terminated");
+            if (!this.contentElement) {
+                try { this.ns.print("ERROR: contentElement is null!"); } catch (e) {}
+                return;
+            }
+
+            try { this.ns.print("DEBUG: Updating display..."); } catch (e) {}
+            this.contentElement.innerHTML = "";
+
+            // Add timestamp to verify updates are happening
+            const timestamp = new Date().toLocaleTimeString();
+            const timestampElement = this.createElement("div", null, {
+                fontSize: "10px",
+                color: "#888",
+                textAlign: "right",
+                marginBottom: "5px"
+            });
+            timestampElement.textContent = `Updated: ${timestamp}`;
+            this.contentElement.appendChild(timestampElement);
+            try { this.ns.print(`DEBUG: Added timestamp: ${timestamp}`); } catch (e) {}
+
+            this.portNumbers.forEach(portNumber => {
+                let portValue;
+                try {
+                    portValue = this.ns.peek(portNumber);
+                } catch (e) {
+                    portValue = "Script terminated";
+                }
+                const portItem = this.createElement("div", null, config.styles.portItem);
+                const formattedData = this.formatPortData(portNumber, portValue);
+                portItem.innerHTML = formattedData;
+                this.contentElement.appendChild(portItem);
+                try { this.ns.print(`DEBUG: Added port ${portNumber} with ${formattedData.length} chars`); } catch (e) {}
+            });
+
+            try { this.ns.print(`DEBUG: Display update complete. Content children: ${this.contentElement.children.length}`); } catch (e) {}
+        }
+
+        startMonitoring() {
+            this.ns.tprint(`Port Monitor started - monitoring ports: ${this.portNumbers.join(", ")}`);
+            // Just update once to show initial state
+            this.updateDisplay();
         }
     }
 
     // Initialize with command line args or default ports
     const portNumbers = ns.args.length > 0 ? ns.args : config.defaultPorts;
-    new PortMonitor(ns, portNumbers);
+    const monitor = new PortMonitor(ns, portNumbers);
+
+    // Main monitoring loop - like the original
+    let updateCount = 0;
+    while (monitor.isRunning) {
+        updateCount++;
+
+        // Debug: Check if popup still exists in DOM
+        if (!document.getElementById(config.popupId)) {
+            ns.tprint("ERROR: Port monitor popup no longer exists in DOM!");
+            break;
+        }
+
+        monitor.updateDisplay();
+
+        // Debug logging every 5 updates
+        if (updateCount % 5 === 0) {
+            try {
+                ns.print(`DEBUG Update #${updateCount}: isMinimized=${monitor.isMinimized}`);
+                portNumbers.forEach(port => {
+                    const value = ns.peek(port);
+                    ns.print(`DEBUG: Port ${port} = ${value.substring(0, 50)}${value.length > 50 ? '...' : ''}`);
+                });
+            } catch (e) {
+                // Script being killed, exit gracefully
+                break;
+            }
+        }
+
+        await ns.sleep(config.updateInterval);
+    }
+
+    ns.tprint("Port Monitor: Script terminated");
 }
