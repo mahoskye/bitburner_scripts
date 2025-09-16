@@ -62,14 +62,23 @@ export async function main(ns) {
 
     async function checkAndRunScript(scriptName, successMessage) {
         if (ns.fileExists(scriptName, "home")) {
+            // Check if we have enough RAM to run the script
+            const scriptRam = ns.getScriptRam(scriptName);
+            const availableRam = ns.getServerMaxRam("home") - ns.getServerUsedRam("home");
+
+            if (availableRam < scriptRam) {
+                ns.print(`Not enough RAM to run ${scriptName} (need ${scriptRam}GB, have ${availableRam}GB)`);
+                return;
+            }
+
             const pid = ns.exec(scriptName, "home");
             if (pid !== 0) {
                 ns.print(successMessage);
             } else {
-                ns.print(`Failed to execute ${scriptName}`);
+                ns.print(`Failed to execute ${scriptName} - may already be running or insufficient resources`);
             }
         } else {
-            ns.print(`ERROR: ${scriptName} not found`);
+            ns.print(`WARNING: ${scriptName} not found - skipping`);
         }
     }
 

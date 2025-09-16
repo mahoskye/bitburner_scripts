@@ -5,6 +5,13 @@ export async function main(ns) {
     const serverInfoFile = "servers/server_info.txt";
     const minRam = 8; // Starting RAM size
 
+    // Early game check - don't buy servers if player has less than 100k
+    const playerMoney = ns.getServerMoneyAvailable("home");
+    if (playerMoney < 100000) {
+        ns.print("Early game detected - server purchasing disabled until 100k money");
+        return;
+    }
+
     // Disable default logging
     ns.disableLog("ALL");
     // Enable only essential logs
