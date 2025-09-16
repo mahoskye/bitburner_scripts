@@ -63,6 +63,9 @@ export async function main(ns) {
             this.popup = null;
             this.contentElement = null;
             this.minimizeButton = null;
+            this.expandedWidth = 350;
+            this.minimizedWidth = 200;
+            this.rightEdgePosition = null; // Store the right edge position
 
             this.init();
         }
@@ -132,7 +135,25 @@ export async function main(ns) {
         toggleMinimize() {
             this.isMinimized = !this.isMinimized;
             this.contentElement.style.display = this.isMinimized ? "none" : "block";
-            this.popup.style.width = this.isMinimized ? "200px" : "350px";
+
+            // Get border width (we have 1px border on left and right)
+            const borderWidth = 2; // 1px left + 1px right
+
+            // Always capture the current right edge position before making changes
+            // Subtract border width to get the content edge
+            this.rightEdgePosition = this.popup.offsetLeft + this.popup.offsetWidth - borderWidth;
+
+            // Expand/contract to the left using current right edge position
+            if (this.isMinimized) {
+                // Minimizing: reduce width, keep right edge fixed
+                this.popup.style.width = this.minimizedWidth + "px";
+                this.popup.style.left = (this.rightEdgePosition - this.minimizedWidth) + "px";
+            } else {
+                // Expanding: increase width, keep right edge fixed
+                this.popup.style.width = this.expandedWidth + "px";
+                this.popup.style.left = (this.rightEdgePosition - this.expandedWidth) + "px";
+            }
+
             this.minimizeButton.textContent = this.isMinimized ? "+" : "-";
         }
 
@@ -190,6 +211,10 @@ export async function main(ns) {
             const rootElement = document.getElementById("root");
             if (rootElement) {
                 rootElement.appendChild(this.popup);
+                // Store the initial right edge position after appending to DOM
+                setTimeout(() => {
+                    this.rightEdgePosition = this.popup.offsetLeft + this.popup.offsetWidth;
+                }, 0);
             } else {
                 this.ns.tprint("ERROR: Could not find #root element");
                 this.isRunning = false;
