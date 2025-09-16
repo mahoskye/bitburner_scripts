@@ -30,8 +30,15 @@ export async function main(ns) {
 
                 if (targets.length > 0) {
                     targets.forEach(server => {
+                        const path = findPathToServer(server.hostname);
                         ns.tprint(`• ${server.hostname} (Hack Level: ${server.requiredHackingSkill})`);
-                        ns.tprint(`  Commands: connect ${server.hostname}; backdoor; home`);
+                        if (path) {
+                            const connectCommands = path.slice(1).map(host => `connect ${host}`).join('; ');
+                            ns.tprint(`  Path: ${path.join(' → ')}`);
+                            ns.tprint(`  Commands: ${connectCommands}; backdoor; home`);
+                        } else {
+                            ns.tprint(`  ERROR: Could not find path to ${server.hostname}`);
+                        }
                     });
                 } else {
                     ns.tprint("No faction servers ready for backdoor installation.");
@@ -40,6 +47,36 @@ export async function main(ns) {
         } catch (e) {
             ns.tprint("Could not read server info file.");
         }
+    }
+
+    function findPathToServer(targetServer) {
+        // BFS to find shortest path from home to target
+        const queue = [["home"]];
+        const visited = new Set(["home"]);
+
+        while (queue.length > 0) {
+            const path = queue.shift();
+            const currentServer = path[path.length - 1];
+
+            if (currentServer === targetServer) {
+                return path;
+            }
+
+            try {
+                const connections = ns.scan(currentServer);
+                for (const neighbor of connections) {
+                    if (!visited.has(neighbor)) {
+                        visited.add(neighbor);
+                        queue.push([...path, neighbor]);
+                    }
+                }
+            } catch (e) {
+                // Skip servers we can't scan
+                continue;
+            }
+        }
+
+        return null; // Path not found
     }
 
     // Read server info
