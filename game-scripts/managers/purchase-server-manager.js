@@ -1,7 +1,7 @@
 /** @param {NS} ns */
 export async function main(ns) {
     const maxRam = ns.getPurchasedServerMaxRam();
-    const script = "bot-worker.js";
+    const script = "workers/bot-worker.js";
     const serverInfoFile = "servers/server_info.txt";
     const minRam = 8; // Starting RAM size
 
@@ -100,11 +100,21 @@ export async function main(ns) {
                             if (upgradedServer !== "") {
                                 const correctedName = ensureCorrectServerName(upgradedServer, standardName);
                                 await ns.scp(script, correctedName);
-                                const threads = Math.floor(nextRam / ns.getScriptRam(script));
-                                ns.exec(script, correctedName, threads);
-                                ns.print(
-                                    `Server ${correctedName} upgraded from ${currentRam}GB to ${nextRam}GB RAM, running ${threads} threads of ${script}`
-                                );
+                                const scriptRam = ns.getScriptRam(script);
+                                let threads = 0;
+                                if (scriptRam > 0) {
+                                    threads = Math.floor(nextRam / scriptRam);
+                                    if (threads > 0) {
+                                        ns.exec(script, correctedName, threads);
+                                        ns.print(
+                                            `Server ${correctedName} upgraded from ${currentRam}GB to ${nextRam}GB RAM, running ${threads} threads of ${script}`
+                                        );
+                                    } else {
+                                        ns.print(`WARNING: Not enough RAM on ${correctedName} to run ${script}`);
+                                    }
+                                } else {
+                                    ns.print(`ERROR: Script ${script} not found or has 0 RAM cost`);
+                                }
                                 upgradedThisRound = true;
                             }
                         } else {

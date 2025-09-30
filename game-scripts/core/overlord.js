@@ -3,11 +3,12 @@ export async function main(ns) {
     // Configuration
     const CONFIG = {
         SCRIPTS: {
-            HACKNET: "hacknet-farm.js",
-            PURCHASE_SERVER: "purchase-server-manager.js",
-            HACK_MANAGER: "hack-manager.js",
-            SERVER_DISCOVERY: "server-discovery.js",
-            PORT_MONITOR: "port-monitor.js",
+            HACKNET: "managers/hacknet-farm.js",
+            PURCHASE_SERVER: "managers/purchase-server-manager.js",
+            HACK_MANAGER: "managers/hack-manager.js",
+            SERVER_DISCOVERY: "discovery/server-discovery.js",
+            PORT_MONITOR: "monitoring/port-monitor.js",
+            TOR_MANAGER: "managers/tor-manager.js",
         },
         FILES: {
             SERVER_LIST: "/servers/server_info.txt",
@@ -90,6 +91,9 @@ export async function main(ns) {
         // Run server discovery based on dynamic interval
         const discoveryInterval = CONFIG.getDiscoveryInterval();
         if (currentTime - lastDiscoveryTime >= discoveryInterval) {
+            // Run TOR manager before server discovery
+            await runTorManager();
+
             await runServerDiscovery();
             lastDiscoveryTime = currentTime;
             ns.print(`Server discovery completed (next in ${discoveryInterval/1000}s)`);
@@ -142,6 +146,23 @@ export async function main(ns) {
     async function runServerDiscovery() {
         await checkAndRunScript(CONFIG.SCRIPTS.SERVER_DISCOVERY, "Running Server Discovery");
         await ns.sleep(1000); // Give some time for the discovery to complete
+    }
+
+    async function runTorManager() {
+        if (ns.fileExists(CONFIG.SCRIPTS.TOR_MANAGER, "home")) {
+            const pid = ns.exec(CONFIG.SCRIPTS.TOR_MANAGER, "home");
+            if (pid !== 0) {
+                // Wait for TOR manager to complete
+                while (ns.isRunning(pid)) {
+                    await ns.sleep(100);
+                }
+                ns.print("TOR Manager completed");
+            } else {
+                ns.print("TOR Manager already running or failed to start");
+            }
+        } else {
+            ns.print("WARNING: tor-manager.js not found - skipping TOR management");
+        }
     }
 
     function updateBestTarget(ns) {

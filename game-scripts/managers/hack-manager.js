@@ -10,10 +10,10 @@ export async function main(ns) {
             { name: "HTTPWorm.exe", action: ns.httpworm },
             { name: "SQLInject.exe", action: ns.sqlinject },
         ],
-        BOT_SCRIPT: "bot-worker.js",
+        BOT_SCRIPT: "workers/bot-worker.js",
         SERVER_INFO_FILE: "/servers/server_info.txt",
-        BACKDOOR_SCRIPT: "backdoor-manager.js",
-        DISCOVERY_SCRIPT: "server-discovery.js",
+        BACKDOOR_SCRIPT: "discovery/backdoor-manager.js",
+        DISCOVERY_SCRIPT: "discovery/server-discovery.js",
     };
 
     const BOT_SCRIPT_RAM = ns.getScriptRam(CONFIG.BOT_SCRIPT);

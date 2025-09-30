@@ -1,6 +1,6 @@
 /** @param {NS} ns */
 export async function main(ns) {
-    const WORKER_SCRIPT = "bot-worker.js";
+    const WORKER_SCRIPT = "workers/bot-worker.js";
     const WORKER_PORT = 1;
 
     ns.tprint("=== OFFLINE WORKER SETUP ===");
