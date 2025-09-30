@@ -5,9 +5,17 @@ export async function main(ns) {
 
     ns.tprint("=== OFFLINE WORKER SETUP ===");
 
-    // Step 1: Kill all running scripts
-    ns.tprint("Killing all running scripts...");
-    ns.killall("home", true); // Kill all scripts on home, including this one will be killed last
+    // Step 1: Kill scripts on home server only (preserve scripts on other servers)
+    ns.tprint("Killing scripts on home server...");
+    const currentScript = ns.getScriptName();
+    const runningScripts = ns.ps("home");
+
+    for (const script of runningScripts) {
+        if (script.filename !== currentScript) {
+            ns.scriptKill(script.filename, "home");
+            ns.print(`Killed: ${script.filename} (PID: ${script.pid})`);
+        }
+    }
 
     // Wait a moment for scripts to terminate
     await ns.sleep(1000);

@@ -7,7 +7,7 @@ export async function main(ns) {
 
     // Early game check - don't buy servers if player has less than 100k
     const playerMoney = ns.getServerMoneyAvailable("home");
-    if (playerMoney < 100000) {
+    if (playerMoney < 100_000) {
         ns.print("Early game detected - server purchasing disabled until 100k money");
         return;
     }
@@ -66,8 +66,8 @@ export async function main(ns) {
         let upgradedThisRound = false;
 
         for (let i = 0; i < serverLimit; i++) {
-            const standardName = `pserv-${i}`;
-            const existingServer = purchasedServers.find((s) => s.hostname.startsWith(`pserv-${i}`));
+            const standardName = `pserv-${i.toString().padStart(4, '0')}`;
+            const existingServer = purchasedServers.find((s) => s.hostname === standardName);
 
             if (!existingServer && purchasedServers.length < serverLimit) {
                 // Purchase new server if we're under the limit
@@ -131,6 +131,6 @@ export async function main(ns) {
         }
 
         // Wait before next iteration, longer if no upgrades were made
-        await ns.sleep(upgradedThisRound ? 1000 : 60000);
+        await ns.sleep(upgradedThisRound ? 1000 : 60_000);
     }
 }

@@ -11,9 +11,9 @@ export async function main(ns) {
     const NODE_MAX_CORES = 16;
     // Dynamic chunk sizes based on money available
     const money = ns.getServerMoneyAvailable("home");
-    const NODE_CHUNK_SIZE = money < 100000 ? 1 : 3; // Buy one at a time early game
-    const LEVEL_CHUNK_SIZE = money < 100000 ? 2 : 5; // Smaller upgrades early game
-    const MONEY_RESERVE = Math.max(10000, ns.getServerMoneyAvailable("home") * 0.1); // Keep 10% in reserve, minimum 10k
+    const NODE_CHUNK_SIZE = money < 100_000 ? 1 : 3; // Buy one at a time early game
+    const LEVEL_CHUNK_SIZE = money < 100_000 ? 2 : 5; // Smaller upgrades early game
+    const MONEY_RESERVE = Math.max(10_000, ns.getServerMoneyAvailable("home") * 0.1); // Keep 10% in reserve, minimum 10k
 
     // Sets to keep track of statuses
     let isSetup = true;

@@ -1,6 +1,7 @@
 /** @param {NS} ns */
 export async function main(ns) {
     const mode = ns.args[0] || "overlord";
+    const cleanupLevel = ns.args[1] || "home"; // "home" or "all"
 
     const CONFIG = {
         MODES: {
@@ -29,14 +30,21 @@ export async function main(ns) {
     // Validate mode
     if (!Object.values(CONFIG.MODES).includes(mode)) {
         ns.tprint(`ERROR: Invalid mode '${mode}'. Use 'overlord' or 'offline'`);
-        ns.tprint("Usage: run startup.js [overlord|offline]");
+        ns.tprint("Usage: run main.js [overlord|offline] [home|all]");
         return;
     }
 
-    ns.tprint(`Starting ${mode} mode...`);
+    // Validate cleanup level
+    if (!["home", "all"].includes(cleanupLevel)) {
+        ns.tprint(`ERROR: Invalid cleanup level '${cleanupLevel}'. Use 'home' or 'all'`);
+        ns.tprint("Usage: run main.js [overlord|offline] [home|all]");
+        return;
+    }
 
-    // Kill all running scripts except this one
-    await killAllScripts();
+    ns.tprint(`Starting ${mode} mode with ${cleanupLevel} cleanup...`);
+
+    // Kill running scripts based on cleanup level
+    await killAllScripts(cleanupLevel);
 
     // Wait a moment for cleanup
     await ns.sleep(1000);
@@ -58,7 +66,7 @@ export async function main(ns) {
         ns.tprint("Check RAM requirements and script availability");
     }
 
-    async function killAllScripts() {
+    async function killAllScripts(cleanupLevel) {
         let killedCount = 0;
         const currentScript = ns.getScriptName();
 
@@ -73,36 +81,39 @@ export async function main(ns) {
             }
         }
 
-        // Kill scripts on all purchased servers
-        const servers = ns.getPurchasedServers();
-        for (const server of servers) {
-            const serverScripts = ns.ps(server);
-            for (const script of serverScripts) {
-                if (ns.scriptKill(script.filename, server)) {
-                    ns.print(`Killed: ${script.filename} on ${server}`);
-                    killedCount++;
+        // Only kill scripts on other servers if "all" cleanup is requested
+        if (cleanupLevel === "all") {
+            // Kill scripts on all purchased servers
+            const servers = ns.getPurchasedServers();
+            for (const server of servers) {
+                const serverScripts = ns.ps(server);
+                for (const script of serverScripts) {
+                    if (ns.scriptKill(script.filename, server)) {
+                        ns.print(`Killed: ${script.filename} on ${server}`);
+                        killedCount++;
+                    }
                 }
             }
-        }
 
-        // Kill scripts on discovered servers (if server list exists)
-        try {
-            if (ns.fileExists("/servers/server_info.txt")) {
-                const serverData = JSON.parse(ns.read("/servers/server_info.txt"));
-                for (const serverInfo of serverData) {
-                    if (serverInfo.hasRootAccess && serverInfo.hostname !== "home") {
-                        const serverScripts = ns.ps(serverInfo.hostname);
-                        for (const script of serverScripts) {
-                            if (ns.scriptKill(script.filename, serverInfo.hostname)) {
-                                ns.print(`Killed: ${script.filename} on ${serverInfo.hostname}`);
-                                killedCount++;
+            // Kill scripts on discovered servers (if server list exists)
+            try {
+                if (ns.fileExists("/servers/server_info.txt")) {
+                    const serverData = JSON.parse(ns.read("/servers/server_info.txt"));
+                    for (const serverInfo of serverData) {
+                        if (serverInfo.hasRootAccess && serverInfo.hostname !== "home") {
+                            const serverScripts = ns.ps(serverInfo.hostname);
+                            for (const script of serverScripts) {
+                                if (ns.scriptKill(script.filename, serverInfo.hostname)) {
+                                    ns.print(`Killed: ${script.filename} on ${serverInfo.hostname}`);
+                                    killedCount++;
+                                }
                             }
                         }
                     }
                 }
+            } catch (error) {
+                ns.print("Could not read server list for cleanup - continuing anyway");
             }
-        } catch (error) {
-            ns.print("Could not read server list for cleanup - continuing anyway");
         }
 
         if (killedCount > 0) {
