@@ -1,7 +1,7 @@
 /** @param {NS} ns */
 export async function main(ns) {
     const config = {
-        defaultPorts: [1, 2],
+        defaultPorts: [1, 2, 3, 4, 5],
         updateInterval: 1000,
         popupId: "bitburner-port-monitor",
         styles: {
@@ -246,12 +246,209 @@ export async function main(ns) {
                         } catch (e) {}
                     }
 
+                    // Get income rates
+                    const hacknetIncome = this.ns.hacknet.numNodes() > 0 ?
+                        Array.from({length: this.ns.hacknet.numNodes()}, (_, i) =>
+                            this.ns.hacknet.getNodeStats(i).production
+                        ).reduce((a, b) => a + b, 0) : 0;
+
+                    const scriptIncome = this.getScriptIncome();
+                    const totalIncome = hacknetIncome + scriptIncome;
+
                     return `
                         <div style="color: #00ddff; font-weight: bold;">System Status</div>
                         <div style="margin-left: 10px; line-height: 1.4;">
                             <div>Next Discovery: <span style="color: #ffff00;">${minutes}m ${seconds}s</span></div>
                             <div>Interval: ${statusData.discoveryInterval}s</div>
                             <div>Hack Level: <span style="color: #ff6600;">${statusData.hackLevel}</span></div>
+                            <div style="color: #00ddff; font-size: 12px; margin: 5px 0 3px 0;">Income/sec:</div>
+                            <div style="margin-left: 15px; font-size: 11px;">
+                                Scripts: <span style="color: #88ff88;">$${this.ns.formatNumber(scriptIncome, 3)}/s</span>
+                            </div>
+                            <div style="margin-left: 15px; font-size: 11px;">
+                                Hacknet: <span style="color: #88ff88;">$${this.ns.formatNumber(hacknetIncome, 3)}/s</span>
+                            </div>
+                            <div style="margin-left: 15px; font-size: 11px; border-top: 1px solid #444; padding-top: 2px; margin-top: 2px;">
+                                Total: <span style="color: #ffaa00; font-weight: bold;">$${this.ns.formatNumber(totalIncome, 3)}/s</span>
+                            </div>
+                        </div>
+                    `;
+                } catch (e) {
+                    return `<div>Port ${portNumber}: <span style="color: #ff6666;">[Invalid JSON: ${e.message}]</span></div>`;
+                }
+            }
+
+            // Special formatting for augmentation port (port 3)
+            if (portNumber === 3) {
+                try {
+                    const augData = JSON.parse(portValue);
+
+                    let factionList = "";
+                    if (augData.topFactions && augData.topFactions.length > 0) {
+                        factionList = augData.topFactions.slice(0, 3).map((faction, i) =>
+                            `<div style="margin-left: 15px; font-size: 11px;">
+                                ${i + 1}. <span style="color: #ffaa00;">${faction.name}</span>
+                                <span style="color: #888;">(${Math.round(faction.score)})</span>
+                            </div>`
+                        ).join("");
+                    }
+
+                    let nextAugList = "";
+                    if (augData.nextAugmentations && augData.nextAugmentations.length > 0) {
+                        nextAugList = augData.nextAugmentations.slice(0, 2).map((aug, i) =>
+                            `<div style="margin-left: 15px; font-size: 11px;">
+                                ${i + 1}. <span style="color: #00ff88;">${aug.name}</span>
+                                <div style="margin-left: 15px; color: #888; font-size: 10px;">
+                                    $${(aug.price / 1000000).toFixed(1)}M, ${(aug.repReq / 1000).toFixed(1)}k rep
+                                </div>
+                            </div>`
+                        ).join("");
+                    }
+
+                    return `
+                        <div style="color: #ff88ff; font-weight: bold;">Augmentation Plan</div>
+                        <div style="margin-left: 10px; line-height: 1.3;">
+                            <div style="color: #00ddff; font-size: 12px; margin-bottom: 3px;">Priority Factions:</div>
+                            ${factionList || '<div style="margin-left: 15px; color: #888; font-size: 11px;">Planning...</div>'}
+                            <div style="color: #00ddff; font-size: 12px; margin: 5px 0 3px 0;">Next Targets:</div>
+                            ${nextAugList || '<div style="margin-left: 15px; color: #888; font-size: 11px;">Analyzing...</div>'}
+                        </div>
+                    `;
+                } catch (e) {
+                    return `<div>Port ${portNumber}: <span style="color: #ff6666;">[Invalid JSON: ${e.message}]</span></div>`;
+                }
+            }
+
+            // Special formatting for stat grinder port (port 4)
+            if (portNumber === 4) {
+                try {
+                    const statData = JSON.parse(portValue);
+
+                    if (statData.guidanceMode) {
+                        const rec = statData.recommendation;
+                        if (!rec) {
+                            return `
+                                <div style="color: #ffaa44; font-weight: bold;">Stat Guidance</div>
+                                <div style="margin-left: 10px; color: #88ff88; font-size: 11px;">
+                                    All faction targets met!
+                                </div>
+                            `;
+                        }
+
+                        return `
+                            <div style="color: #ffaa44; font-weight: bold;">Stat Guidance</div>
+                            <div style="margin-left: 10px; line-height: 1.3;">
+                                <div style="color: #00ddff; font-size: 12px; margin-bottom: 3px;">Recommended:</div>
+                                <div style="margin-left: 15px; font-size: 11px;">
+                                    <span style="color: #00ff88;">${rec.type}</span>
+                                    <span style="color: #888;"> (${rec.current}/${rec.target})</span>
+                                </div>
+                                <div style="margin-left: 15px; font-size: 10px; color: #aaa;">
+                                    ${rec.location} - ${rec.activity}
+                                </div>
+                                <div style="margin-left: 15px; font-size: 10px;">
+                                    Priority: <span style="color: ${rec.priority === 'HIGH' ? '#ff6666' : rec.priority === 'MEDIUM' ? '#ffaa00' : '#88ff88'};">${rec.priority}</span>
+                                </div>
+                            </div>
+                        `;
+                    }
+
+                    if (!statData.isActive) {
+                        return `
+                            <div style="color: #ffaa44; font-weight: bold;">Stat Grinder</div>
+                            <div style="margin-left: 10px; color: #888; font-size: 11px;">
+                                Idle - waiting for player to be free
+                            </div>
+                        `;
+                    }
+
+                    const targetInfo = statData.currentTarget ?
+                        `<div style="margin-left: 15px; font-size: 11px;">
+                            <span style="color: #00ff88;">${statData.currentTarget.type}</span>
+                            <span style="color: #888;"> (${statData.currentTarget.current}/${statData.currentTarget.current + statData.currentTarget.need})</span>
+                         </div>` : "";
+
+                    const milestoneInfo = statData.milestone ?
+                        `<div style="margin-left: 15px; font-size: 11px;">
+                            Target: <span style="color: #ffaa00;">${statData.milestone.factions.join(", ")}</span>
+                         </div>` : "";
+
+                    return `
+                        <div style="color: #ffaa44; font-weight: bold;">Stat Grinder</div>
+                        <div style="margin-left: 10px; line-height: 1.3;">
+                            <div style="color: #00ddff; font-size: 12px; margin-bottom: 3px;">Training:</div>
+                            ${targetInfo}
+                            <div style="color: #00ddff; font-size: 12px; margin: 5px 0 3px 0;">Progress:</div>
+                            <div style="margin-left: 15px; font-size: 11px;">
+                                <span style="color: #88ff88;">${statData.progress ? statData.progress.toFixed(1) : '0.0'}/min</span>
+                            </div>
+                            ${milestoneInfo}
+                        </div>
+                    `;
+                } catch (e) {
+                    return `<div>Port ${portNumber}: <span style="color: #ff6666;">[Invalid JSON: ${e.message}]</span></div>`;
+                }
+            }
+
+            // Special formatting for Go player port (port 5)
+            if (portNumber === 5) {
+                try {
+                    const goData = JSON.parse(portValue);
+
+                    if (!goData.isActive) {
+                        if (goData.sessionComplete) {
+                            // Show session completion summary
+                            return `
+                                <div style="color: #88aaff; font-weight: bold;">Go Player</div>
+                                <div style="margin-left: 10px; line-height: 1.3;">
+                                    <div style="color: #88ff88; font-size: 12px; margin-bottom: 3px;">Session Complete!</div>
+                                    <div style="margin-left: 15px; font-size: 11px;">
+                                        vs <span style="color: #ffaa00;">${goData.currentOpponent}</span>
+                                    </div>
+                                    <div style="margin-left: 15px; font-size: 11px;">
+                                        <span style="color: #88ff88;">${goData.gamesPlayed}/${goData.maxGames}</span> games played
+                                    </div>
+                                    <div style="color: #00ddff; font-size: 12px; margin: 5px 0 3px 0;">Final Stats:</div>
+                                    <div style="margin-left: 15px; font-size: 11px;">
+                                        <span style="color: #88ff88;">${goData.finalStats.wins}W</span> -
+                                        <span style="color: #ff8888;">${goData.finalStats.losses}L</span>
+                                    </div>
+                                    <div style="margin-left: 15px; font-size: 11px;">
+                                        Win Rate: <span style="color: #ffaa00;">${goData.finalStats.winRate}%</span>
+                                    </div>
+                                </div>
+                            `;
+                        } else {
+                            // Standard inactive state
+                            return `
+                                <div style="color: #88aaff; font-weight: bold;">Go Player</div>
+                                <div style="margin-left: 10px; color: #888; font-size: 11px;">
+                                    Inactive
+                                </div>
+                            `;
+                        }
+                    }
+
+                    const winRate = goData.opponentStats.wins + goData.opponentStats.losses > 0 ?
+                        (goData.opponentStats.wins / (goData.opponentStats.wins + goData.opponentStats.losses) * 100).toFixed(1) : "0.0";
+
+                    return `
+                        <div style="color: #88aaff; font-weight: bold;">Go Player</div>
+                        <div style="margin-left: 10px; line-height: 1.3;">
+                            <div style="color: #00ddff; font-size: 12px; margin-bottom: 3px;">Current Game:</div>
+                            <div style="margin-left: 15px; font-size: 11px;">
+                                vs <span style="color: #ffaa00;">${goData.currentOpponent}</span>
+                            </div>
+                            <div style="margin-left: 15px; font-size: 10px; color: #888;">
+                                Player: ${goData.gameState.currentPlayer}
+                            </div>
+                            <div style="color: #00ddff; font-size: 12px; margin: 5px 0 3px 0;">Session:</div>
+                            <div style="margin-left: 15px; font-size: 11px;">
+                                <span style="color: #88ff88;">${goData.gamesPlayed}/${goData.maxGames}</span> games
+                            </div>
+                            <div style="margin-left: 15px; font-size: 10px;">
+                                Win Rate: <span style="color: #ffff88;">${winRate}%</span>
+                            </div>
                         </div>
                     `;
                 } catch (e) {
@@ -310,6 +507,17 @@ export async function main(ns) {
             this.ns.tprint(`Port Monitor started - monitoring ports: ${this.portNumbers.join(", ")}`);
             // Just update once to show initial state
             this.updateDisplay();
+        }
+
+        getScriptIncome() {
+            try {
+                // Get income from script processes
+                const scriptIncome = this.ns.getScriptIncome();
+                return scriptIncome[0] || 0; // getScriptIncome returns [income, exp]
+            } catch (error) {
+                // Fallback: estimate based on current money growth
+                return 0;
+            }
         }
     }
 

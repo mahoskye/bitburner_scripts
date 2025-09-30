@@ -1,7 +1,30 @@
 /** @param {NS} ns */
 export async function main(ns) {
-    const mode = ns.args[0] || "overlord";
-    const cleanupLevel = ns.args[1] || "home"; // "home" or "all"
+    // Parse arguments for simplified command structure
+    const args = ns.args;
+    let mode = "overlord";
+    let cleanupLevel = "home";
+    let enableGo = false;
+
+    // Parse simplified commands
+    if (args.length === 0) {
+        // Default: main.js -> overlord mode
+        mode = "overlord";
+    } else if (args[0] === "go") {
+        // main.js go -> overlord with Go
+        mode = "overlord";
+        enableGo = true;
+    } else if (args[0] === "offline") {
+        // main.js offline [go] -> offline mode, optionally with Go
+        mode = "offline";
+        enableGo = args.includes("go");
+    } else if (args[0] === "overlord") {
+        // main.js overlord -> overlord mode (simplified)
+        mode = "overlord";
+    } else {
+        // Invalid first argument
+        mode = args[0]; // Will be caught by validation below
+    }
 
     const CONFIG = {
         MODES: {
@@ -29,19 +52,23 @@ export async function main(ns) {
 
     // Validate mode
     if (!Object.values(CONFIG.MODES).includes(mode)) {
-        ns.tprint(`ERROR: Invalid mode '${mode}'. Use 'overlord' or 'offline'`);
-        ns.tprint("Usage: run main.js [overlord|offline] [home|all]");
+        ns.tprint(`ERROR: Invalid mode '${mode}'.`);
+        ns.tprint("Usage:");
+        ns.tprint("  run main.js              - Start overlord mode");
+        ns.tprint("  run main.js go           - Start overlord mode with Go automation");
+        ns.tprint("  run main.js offline      - Start offline worker mode");
+        ns.tprint("  run main.js offline go   - Start offline worker mode with Go automation");
+        ns.tprint("  run main.js overlord     - Start overlord mode (explicit)");
         return;
     }
 
     // Validate cleanup level
     if (!["home", "all"].includes(cleanupLevel)) {
         ns.tprint(`ERROR: Invalid cleanup level '${cleanupLevel}'. Use 'home' or 'all'`);
-        ns.tprint("Usage: run main.js [overlord|offline] [home|all]");
         return;
     }
 
-    ns.tprint(`Starting ${mode} mode with ${cleanupLevel} cleanup...`);
+    ns.tprint(`Starting ${mode} mode with ${cleanupLevel} cleanup${enableGo ? ' and Go automation' : ''}...`);
 
     // Kill running scripts based on cleanup level
     await killAllScripts(cleanupLevel);
@@ -57,10 +84,16 @@ export async function main(ns) {
         return;
     }
 
-    const pid = ns.exec(scriptToRun, "home");
+    // Prepare arguments for the script
+    const scriptArgs = enableGo ? ["--go"] : [];
+
+    const pid = ns.exec(scriptToRun, "home", 1, ...scriptArgs);
     if (pid !== 0) {
         ns.tprint(`SUCCESS: Started ${mode} mode (PID: ${pid})`);
-        ns.tprint(`Script: ${scriptToRun}`);
+        ns.tprint(`Script: ${scriptToRun}${enableGo ? ' --go' : ''}`);
+        if (enableGo) {
+            ns.tprint("Go automation enabled - check port monitor for game status");
+        }
     } else {
         ns.tprint(`ERROR: Failed to start ${scriptToRun}`);
         ns.tprint("Check RAM requirements and script availability");

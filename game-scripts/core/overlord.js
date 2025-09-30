@@ -9,6 +9,10 @@ export async function main(ns) {
             SERVER_DISCOVERY: "discovery/server-discovery.js",
             PORT_MONITOR: "monitoring/port-monitor.js",
             TOR_MANAGER: "managers/tor-manager.js",
+            CONTRACT_SOLVER: "managers/contract-solver.js",
+            AUGMENTATION_PLANNER: "managers/augmentation-planner.js",
+            STAT_GRINDER: "managers/stat-grinder.js",
+            GO_PLAYER: "managers/go-player.js",
         },
         FILES: {
             SERVER_LIST: "/servers/server_info.txt",
@@ -16,6 +20,7 @@ export async function main(ns) {
         PORTS: {
             WORKER: 1,
             STATUS: 2, // Port for status updates
+            AUGMENTATION: 3, // Port for augmentation planning data
         },
         INTERVALS: {
             HACK_LEVEL: 50,
@@ -66,6 +71,11 @@ export async function main(ns) {
     await checkAndRunScript(CONFIG.SCRIPTS.HACKNET, "Initialized Hacknet farm");
     await checkAndRunScript(CONFIG.SCRIPTS.PURCHASE_SERVER, "Initialized Purchase Server Manager");
     await checkAndRunScript(CONFIG.SCRIPTS.PORT_MONITOR, "Started Port Monitor");
+    await checkAndRunScript(CONFIG.SCRIPTS.STAT_GRINDER, "Started Stat Grinder");
+    // Go Player is optional - only run if requested
+    if (ns.args.includes("--go")) {
+        await checkAndRunScript(CONFIG.SCRIPTS.GO_PLAYER, "Started Go Player");
+    }
 
     // Initial run of Hack Manager
     await runHackManager();
@@ -73,6 +83,7 @@ export async function main(ns) {
 
     let lastHackLevel = Math.floor(ns.getHackingLevel() / CONFIG.INTERVALS.HACK_LEVEL) * CONFIG.INTERVALS.HACK_LEVEL;
     let lastDiscoveryTime = 0;
+    let lastAugmentationPlanTime = 0;
 
     while (true) {
         const currentTime = Date.now();
@@ -95,8 +106,22 @@ export async function main(ns) {
             await runTorManager();
 
             await runServerDiscovery();
+
+            // Run contract solver after discovery to check for new contracts
+            await runContractSolver();
+
             lastDiscoveryTime = currentTime;
-            ns.print(`Server discovery completed (next in ${discoveryInterval/1000}s)`);
+            ns.print(`Discovery cycle completed (next in ${discoveryInterval/1000}s)`);
+        }
+
+        // Run augmentation planning every hour or after significant level increases
+        const augmentationPlanInterval = 3600000; // 1 hour
+        const significantLevelIncrease = Math.floor(currentHackLevel / 100) > Math.floor(lastHackLevel / 100);
+
+        if (currentTime - lastAugmentationPlanTime >= augmentationPlanInterval || significantLevelIncrease) {
+            await runAugmentationPlanner();
+            lastAugmentationPlanTime = currentTime;
+            ns.print("Augmentation planning completed");
         }
 
         // Update status port with discovery timer info
@@ -162,6 +187,40 @@ export async function main(ns) {
             }
         } else {
             ns.print("WARNING: tor-manager.js not found - skipping TOR management");
+        }
+    }
+
+    async function runContractSolver() {
+        if (ns.fileExists(CONFIG.SCRIPTS.CONTRACT_SOLVER, "home")) {
+            const pid = ns.exec(CONFIG.SCRIPTS.CONTRACT_SOLVER, "home");
+            if (pid !== 0) {
+                // Wait for contract solver to complete
+                while (ns.isRunning(pid)) {
+                    await ns.sleep(100);
+                }
+                ns.print("Contract Solver completed");
+            } else {
+                ns.print("Contract Solver already running or failed to start");
+            }
+        } else {
+            ns.print("WARNING: contract-solver.js not found - skipping contract solving");
+        }
+    }
+
+    async function runAugmentationPlanner() {
+        if (ns.fileExists(CONFIG.SCRIPTS.AUGMENTATION_PLANNER, "home")) {
+            const pid = ns.exec(CONFIG.SCRIPTS.AUGMENTATION_PLANNER, "home");
+            if (pid !== 0) {
+                // Wait for augmentation planner to complete
+                while (ns.isRunning(pid)) {
+                    await ns.sleep(100);
+                }
+                ns.print("Augmentation Planner completed");
+            } else {
+                ns.print("Augmentation Planner already running or failed to start");
+            }
+        } else {
+            ns.print("WARNING: augmentation-planner.js not found - skipping augmentation planning");
         }
     }
 
