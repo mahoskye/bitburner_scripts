@@ -1,7 +1,9 @@
 /** @param {NS} ns */
 export async function main(ns) {
     const WORKER_SCRIPT = "workers/bot-worker.js";
+    const GO_PLAYER_SCRIPT = "go/go-player.js";
     const WORKER_PORT = 1;
+    const enableGo = ns.args.includes("--go");
 
     ns.tprint("=== OFFLINE WORKER SETUP ===");
 
@@ -20,17 +22,34 @@ export async function main(ns) {
     // Wait a moment for scripts to terminate
     await ns.sleep(1000);
 
+    // Step 1.5: Start Go bot if requested (before spawning workers to leave RAM for it)
+    if (enableGo) {
+        ns.tprint("Starting Go bot...");
+        if (ns.fileExists(GO_PLAYER_SCRIPT, "home")) {
+            const goPid = ns.exec(GO_PLAYER_SCRIPT, "home");
+            if (goPid !== 0) {
+                ns.tprint(`SUCCESS: Go bot started (PID: ${goPid})`);
+            } else {
+                ns.tprint(`WARNING: Failed to start Go bot`);
+            }
+        } else {
+            ns.tprint(`WARNING: Go bot script not found at ${GO_PLAYER_SCRIPT}`);
+        }
+        await ns.sleep(500);
+    }
+
     // Step 2: Check if worker script exists
     if (!ns.fileExists(WORKER_SCRIPT, "home")) {
         ns.tprint(`ERROR: ${WORKER_SCRIPT} not found on home server`);
         return;
     }
 
-    // Step 3: Calculate maximum threads
+    // Step 3: Calculate maximum threads (leave 10% RAM available)
     const scriptRam = ns.getScriptRam(WORKER_SCRIPT);
     const totalRam = ns.getServerMaxRam("home");
     const usedRam = ns.getServerUsedRam("home"); // This script's RAM usage
-    const availableRam = totalRam - usedRam;
+    const reservedRam = totalRam * 0.10; // Reserve 10% of total RAM
+    const availableRam = totalRam - usedRam - reservedRam;
     const maxThreads = Math.floor(availableRam / scriptRam);
 
     if (maxThreads <= 0) {

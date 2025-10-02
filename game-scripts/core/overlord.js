@@ -12,7 +12,7 @@ export async function main(ns) {
             CONTRACT_SOLVER: "managers/contract-solver.js",
             AUGMENTATION_PLANNER: "managers/augmentation-planner.js",
             STAT_GRINDER: "managers/stat-grinder.js",
-            GO_PLAYER: "managers/go-player.js",
+            GO_PLAYER: "go/go-player.js",
         },
         FILES: {
             SERVER_LIST: "/servers/server_info.txt",

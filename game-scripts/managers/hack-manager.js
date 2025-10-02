@@ -46,11 +46,38 @@ export async function main(ns) {
     }
 
     async function runServerDiscovery() {
-        // Run the server discovery script
+        // Run the server discovery script and wait for it to complete
         ns.tprint("Starting server discovery...");
         try {
-            await ns.exec(CONFIG.DISCOVERY_SCRIPT, CONFIG.HOME_SERVER, 1);
-            await ns.sleep(1000); // Wait for discovery to complete
+            // Check if discovery script is already running
+            const runningScripts = ns.ps(CONFIG.HOME_SERVER);
+            let pid = runningScripts.find(s => s.filename === CONFIG.DISCOVERY_SCRIPT)?.pid;
+
+            if (!pid) {
+                // Not running, start it
+                pid = ns.exec(CONFIG.DISCOVERY_SCRIPT, CONFIG.HOME_SERVER, 1);
+                if (pid === 0) {
+                    // Check if insufficient RAM or script doesn't exist
+                    if (!ns.fileExists(CONFIG.DISCOVERY_SCRIPT, CONFIG.HOME_SERVER)) {
+                        throw new Error(`Script ${CONFIG.DISCOVERY_SCRIPT} not found`);
+                    }
+                    const scriptRam = ns.getScriptRam(CONFIG.DISCOVERY_SCRIPT);
+                    const availableRam = ns.getServerMaxRam(CONFIG.HOME_SERVER) - ns.getServerUsedRam(CONFIG.HOME_SERVER);
+                    throw new Error(`Failed to execute ${CONFIG.DISCOVERY_SCRIPT}. Need ${scriptRam}GB, have ${availableRam}GB available`);
+                }
+            } else {
+                ns.tprint("Server discovery already running, waiting for completion...");
+            }
+
+            // Wait for the discovery script to finish
+            while (ns.isRunning(pid)) {
+                await ns.sleep(100);
+            }
+
+            // Give file system a moment to write
+            await ns.sleep(500);
+
+            ns.tprint("Server discovery completed.");
         } catch (error) {
             ns.tprint(`ERROR: Failed to run server discovery script. Error: ${error.message}`);
             throw error;
