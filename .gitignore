@@ -38,3 +38,7 @@ jspm_packages/
 # Windows specific files
 Thumbs.db
 BitburnerScripts.code-workspace
+
+# External reference repositories
+bitburner-src-doc/
+bitburner-src-markdown/
