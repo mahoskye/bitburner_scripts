@@ -6,7 +6,7 @@
 export const MONEY = {
   BUFFER_MIN: 100000,             // General minimum buffer (100k)
   SERVER_PURCHASE_MIN: 100000,    // Don't buy servers until 100k
-  HACKNET_RESERVE: 10000,         // Money to keep in reserve (or 10%)
+  HACKNET_RESERVE: 200000,        // Money to keep in reserve (or 10%) - matches TOR cost
   HACKNET_THRESHOLD: 100000,      // Threshold for hacknet chunk sizes
   STAT_GRINDER_BUFFER: 1000000,   // Min buffer for stat grinding
 };

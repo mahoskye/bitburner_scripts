@@ -10,6 +10,9 @@ export const SETTINGS = {
     AUTO_CONTRACTS: true,
     AUTO_BACKDOOR: false,
 
+    // Debug settings
+    DEBUG_AUTO_TAIL: false, // Auto-open command server tail window for debugging
+
     // Resource allocation
     RESERVE_HOME_RAM: 32, // GB to reserve on home server
     MAX_SERVER_COST_PERCENT: 0.25, // Max % of money to spend on servers

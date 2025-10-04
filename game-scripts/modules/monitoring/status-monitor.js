@@ -47,6 +47,7 @@ export async function main(ns) {
         }
 
         const statusData = readPort(ns, PORTS.STATUS, null);
+        const hacknetData = readPort(ns, PORTS.HACKNET, null);
 
         // Parse status if available
         let hackLevel = ns.getHackingLevel();
@@ -60,6 +61,26 @@ export async function main(ns) {
                 if (status.nextDiscovery) {
                     nextDiscovery = formatTime(status.nextDiscovery, true);
                 }
+            } catch (e) {
+                // Invalid JSON, use defaults
+            }
+        }
+
+        // Parse hacknet data if available
+        let hacknetNodes = 0;
+        let hacknetMaxNodes = 0;
+        let hacknetCompleted = 0;
+        let hacknetProduction = 0;
+        let hacknetNextAction = null;
+
+        if (hacknetData) {
+            try {
+                const hacknet = JSON.parse(hacknetData);
+                hacknetNodes = hacknet.nodes || 0;
+                hacknetMaxNodes = hacknet.maxNodes || 0;
+                hacknetCompleted = hacknet.completed || 0;
+                hacknetProduction = hacknet.production || 0;
+                hacknetNextAction = hacknet.nextAction;
             } catch (e) {
                 // Invalid JSON, use defaults
             }
@@ -146,10 +167,19 @@ export async function main(ns) {
                 React.createElement("span", { style: { color: "#88ff88" } }, formatMoney(ns, scriptIncome, 2) + "/s")
             ),
 
-            // Hacknet income
-            React.createElement("div", { style: { marginBottom: "5px", marginLeft: "10px" } },
-                React.createElement("span", { style: { color: "#aaa" } }, "Hacknet:  "),
-                React.createElement("span", { style: { color: "#88ff88" } }, formatMoney(ns, hacknetIncome, 2) + "/s")
+            // Hacknet section
+            React.createElement("div", { style: { marginBottom: "8px" } },
+                React.createElement("div", { style: { marginBottom: "5px", marginLeft: "10px" } },
+                    React.createElement("span", { style: { color: "#aaa" } }, "Hacknet:  "),
+                    React.createElement("span", { style: { color: "#88ff88" } }, formatMoney(ns, hacknetIncome, 2) + "/s")
+                ),
+                hacknetNodes > 0 ? React.createElement("div", { style: { marginLeft: "22px", fontSize: "12px", color: "#666" } },
+                    `${hacknetNodes}/${hacknetMaxNodes} nodes (${hacknetCompleted} maxed)`,
+                    hacknetNextAction ?
+                        React.createElement("span", { style: { color: "#999", marginLeft: "8px" } },
+                            `next: ${hacknetNextAction.type} (${formatMoney(ns, hacknetNextAction.cost, 0)})`
+                        ) : null
+                ) : null
             ),
 
             // Total income

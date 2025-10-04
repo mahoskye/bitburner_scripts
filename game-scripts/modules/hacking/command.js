@@ -18,10 +18,13 @@ import { writePort } from '/lib/port-utils.js';
 import { calculateMaxThreads } from '/lib/ram-utils.js';
 import { findBestHackTarget, calculateHackScore } from '/lib/target-utils.js';
 import { disableCommonLogs } from '/lib/misc-utils.js';
+import { findBestDeploymentServer, deployScript, getScriptRamCost } from '/lib/deployment-utils.js';
+import { isManagerRunning, registerManagerDeployment, cleanupStaleDeployments } from '/lib/manager-utils.js';
 import { PORTS } from '/config/ports.js';
 import { INTERVALS } from '/config/timing.js';
 import { HACK_LEVELS } from '/config/hacking.js';
 import { SCRIPTS } from '/config/paths.js';
+import { SETTINGS } from '/config/settings.js';
 
 export async function main(ns) {
     // ============================================================================
@@ -31,13 +34,21 @@ export async function main(ns) {
     disableCommonLogs(ns);
 
     const WORKER_SCRIPT = SCRIPTS.WORKER;
+    const HACKNET_SCRIPT = SCRIPTS.HACKNET_MANAGER;
+    const PROGRAM_SCRIPT = SCRIPTS.PROGRAM_MANAGER;
     const currentServer = ns.getHostname();
     let lastDiscovery = 0;
     let currentTarget = null;
     let currentTargetScore = 0;
+    let needsWorkerUpdate = false;
 
     ns.tprint("Command server started");
     ns.tprint(`  Running on: ${currentServer}`);
+
+    // Open tail window if debug setting enabled
+    if (SETTINGS.DEBUG_AUTO_TAIL) {
+        ns.tail();
+    }
 
     // ============================================================================
     // MAIN LOOP
@@ -60,7 +71,9 @@ export async function main(ns) {
 
         // Run discovery if interval has passed
         const now = Date.now();
-        if (now - lastDiscovery >= discoveryInterval) {
+        const discoveryDue = (now - lastDiscovery >= discoveryInterval);
+
+        if (discoveryDue) {
             ns.print(`Running discovery (hack level: ${hackLevel})...`);
 
             // Scan network
@@ -178,6 +191,98 @@ export async function main(ns) {
 
             ns.print(`Discovery complete: ${deployedCount} servers deployed`);
             lastDiscovery = now;
+            needsWorkerUpdate = false; // Reset flag after worker update
+        }
+
+        // Update workers if manager deployment changed RAM availability
+        if (needsWorkerUpdate && !discoveryDue) {
+            ns.print("Manager deployment detected, updating workers...");
+            const allServers = scanAllServers(ns);
+            const accessibleServers = getAllAccessibleServers(ns, allServers);
+
+            let updatedCount = 0;
+            for (const hostname of accessibleServers) {
+                // Skip home and command center
+                if (hostname === "home" || hostname === currentServer) {
+                    continue;
+                }
+
+                // Copy worker script
+                await ns.scp(WORKER_SCRIPT, hostname, "home");
+
+                // Calculate optimal thread count
+                const maxThreads = calculateMaxThreads(ns, WORKER_SCRIPT, hostname, 0);
+
+                // Get currently running processes
+                const processes = ns.ps(hostname);
+                const runningWorker = processes.find(p => p.filename === WORKER_SCRIPT);
+
+                // Check if worker needs deployment/restart
+                if (runningWorker && runningWorker.threads !== maxThreads && maxThreads > 0) {
+                    // Kill and restart with new thread count
+                    ns.scriptKill(WORKER_SCRIPT, hostname);
+                    const pid = ns.exec(WORKER_SCRIPT, hostname, maxThreads, PORTS.HACK_TARGET);
+                    if (pid > 0) {
+                        ns.print(`  Updated ${hostname}: ${runningWorker.threads} -> ${maxThreads} threads`);
+                        updatedCount++;
+                    }
+                }
+            }
+
+            ns.print(`Worker update complete: ${updatedCount} servers updated`);
+            needsWorkerUpdate = false;
+        }
+
+        // Clean up any stale manager deployments
+        await cleanupStaleDeployments(ns);
+
+        // Deploy managers sequentially (one at a time to avoid conflicts)
+        const managersToDeploy = [
+            { name: "hacknet", script: HACKNET_SCRIPT },
+            { name: "programs", script: PROGRAM_SCRIPT }
+        ];
+
+        for (const manager of managersToDeploy) {
+            if (!isManagerRunning(ns, manager.name)) {
+                // Copy manager script to command server temporarily to check RAM cost
+                await ns.scp(manager.script, currentServer, "home");
+                const ramRequired = getScriptRamCost(ns, manager.script);
+
+                // Exclude home, command center, and n00dles (workers only)
+                const excludeServers = ["home", currentServer, "n00dles"];
+
+                const server = findBestDeploymentServer(ns, ramRequired, excludeServers);
+
+                if (server) {
+                    const dependencies = [
+                        '/lib/misc-utils.js',
+                        '/lib/port-utils.js',
+                        '/config/money.js',
+                        '/config/ports.js',
+                    ];
+
+                    const result = await deployScript(ns, manager.script, dependencies, server.hostname, {
+                        killExisting: false, // Don't kill - we already checked isManagerRunning()
+                        autoStart: true,
+                        threads: 1
+                    });
+
+                    if (result.success) {
+                        // Register deployment for tracking
+                        await registerManagerDeployment(ns, manager.name, server.hostname, manager.script, result.pid);
+                        ns.print(`SUCCESS: ${result.message}`);
+                        ns.tprint(`${manager.name} manager deployed to ${server.hostname}`);
+                        needsWorkerUpdate = true; // Trigger worker redeployment
+
+                        // Break out of loop to let deployment settle before next iteration
+                        break;
+                    } else {
+                        ns.print(`WARNING: ${result.message}`);
+                    }
+                } else {
+                    ns.print(`Waiting for suitable server for ${manager.name} manager (need ${ramRequired.toFixed(2)}GB)...`);
+                }
+            }
         }
 
         // Update status port with current state

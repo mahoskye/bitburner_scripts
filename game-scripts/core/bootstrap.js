@@ -125,6 +125,7 @@ export async function main(ns) {
         '/config/servers.js',
         '/config/paths.js',
         '/config/money.js',
+        '/config/settings.js',
         // Library files
         '/lib/server-utils.js',
         '/lib/access-utils.js',
@@ -132,6 +133,8 @@ export async function main(ns) {
         '/lib/ram-utils.js',
         '/lib/target-utils.js',
         '/lib/misc-utils.js',
+        '/lib/deployment-utils.js',
+        '/lib/manager-utils.js',
     ];
 
     for (const file of filesToCopy) {
