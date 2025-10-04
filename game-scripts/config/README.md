@@ -27,8 +27,8 @@ Constants are split into focused modules for better organization and RAM efficie
 Better RAM efficiency - only import what you need:
 
 ```javascript
-import { PORTS } from '/game-scripts/config/ports.js';
-import { HACK_THRESHOLDS } from '/game-scripts/config/hacking.js';
+import { PORTS } from '/config/ports.js';
+import { HACK_THRESHOLDS } from '/config/hacking.js';
 
 export async function main(ns) {
     const target = ns.peek(PORTS.HACK_TARGET);
@@ -43,7 +43,7 @@ export async function main(ns) {
 Use when you need multiple constants from different modules:
 
 ```javascript
-import { PORTS, MONEY, HACK_LEVELS } from '/game-scripts/config/constants.js';
+import { PORTS, MONEY, HACK_LEVELS } from '/config/constants.js';
 
 export async function main(ns) {
     // All constants available

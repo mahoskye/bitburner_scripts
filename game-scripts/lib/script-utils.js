@@ -3,7 +3,7 @@
  * Functions for deploying, executing, and managing scripts across servers
  */
 
-import { calculateMaxThreads } from '/game-scripts/lib/ram-utils.js';
+import { calculateMaxThreads } from '/lib/ram-utils.js';
 
 /**
  * Deploys a script to a server and executes it with maximum threads

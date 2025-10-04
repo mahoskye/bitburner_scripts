@@ -3,7 +3,7 @@
  * Functions for reading and writing to NetScript ports (1-20)
  */
 
-import { PORT_NO_DATA } from '/game-scripts/config/ports.js';
+import { PORT_NO_DATA } from '/config/ports.js';
 
 /**
  * Safely reads from a port with a default fallback

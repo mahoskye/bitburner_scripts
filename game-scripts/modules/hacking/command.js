@@ -12,16 +12,16 @@
  * Deployment: Run on 16GB+ server with library access
  */
 
-import { scanAllServers, getServerInfo, getAllAccessibleServers } from '/game-scripts/lib/server-utils.js';
-import { gainRootAccess, getAvailablePortOpeners } from '/game-scripts/lib/access-utils.js';
-import { writePort } from '/game-scripts/lib/port-utils.js';
-import { calculateMaxThreads } from '/game-scripts/lib/ram-utils.js';
-import { findBestHackTarget } from '/game-scripts/lib/target-utils.js';
-import { disableCommonLogs } from '/game-scripts/lib/misc-utils.js';
-import { PORTS } from '/game-scripts/config/ports.js';
-import { INTERVALS } from '/game-scripts/config/timing.js';
-import { HACK_LEVELS } from '/game-scripts/config/hacking.js';
-import { SCRIPTS } from '/game-scripts/config/paths.js';
+import { scanAllServers, getServerInfo, getAllAccessibleServers } from '/lib/server-utils.js';
+import { gainRootAccess, getAvailablePortOpeners } from '/lib/access-utils.js';
+import { writePort } from '/lib/port-utils.js';
+import { calculateMaxThreads } from '/lib/ram-utils.js';
+import { findBestHackTarget } from '/lib/target-utils.js';
+import { disableCommonLogs } from '/lib/misc-utils.js';
+import { PORTS } from '/config/ports.js';
+import { INTERVALS } from '/config/timing.js';
+import { HACK_LEVELS } from '/config/hacking.js';
+import { SCRIPTS } from '/config/paths.js';
 
 export async function main(ns) {
     // ============================================================================

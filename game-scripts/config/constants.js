@@ -10,31 +10,31 @@
  */
 
 // Port communication
-export { PORTS, PORT_NO_DATA } from '/game-scripts/config/ports.js';
+export { PORTS, PORT_NO_DATA } from '/config/ports.js';
 
 // File paths and scripts
-export { FILES, SCRIPTS } from '/game-scripts/config/paths.js';
+export { FILES, SCRIPTS } from '/config/paths.js';
 
 // Timing
-export { INTERVALS, DELAYS } from '/game-scripts/config/timing.js';
+export { INTERVALS, DELAYS } from '/config/timing.js';
 
 // Hacking
-export { HACK_THRESHOLDS, HACK_LEVELS } from '/game-scripts/config/hacking.js';
+export { HACK_THRESHOLDS, HACK_LEVELS } from '/config/hacking.js';
 
 // Servers
-export { SERVERS, FACTION_SERVERS } from '/game-scripts/config/servers.js';
+export { SERVERS, FACTION_SERVERS } from '/config/servers.js';
 
 // Money and programs
-export { MONEY, TOR_COSTS, PROGRAMS } from '/game-scripts/config/money.js';
+export { MONEY, TOR_COSTS, PROGRAMS } from '/config/money.js';
 
 // Hacknet
-export { HACKNET } from '/game-scripts/config/hacknet.js';
+export { HACKNET } from '/config/hacknet.js';
 
 // Stats
-export { STAT_GRINDER } from '/game-scripts/config/stats.js';
+export { STAT_GRINDER } from '/config/stats.js';
 
 // Miscellaneous
-export { SPECIAL } from '/game-scripts/config/misc.js';
+export { SPECIAL } from '/config/misc.js';
 
 export async function main(ns) {
     ns.tprint("INFO: Constants loaded as library");

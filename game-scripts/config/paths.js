@@ -12,8 +12,8 @@ export const FILES = {
 };
 
 export const SCRIPTS = {
-  WORKER: '/game-scripts/modules/hacking/worker.js',
-  COMMAND: '/game-scripts/modules/hacking/command.js',
-  BOOTSTRAP: '/game-scripts/core/bootstrap.js',
-  CONTRACT_WORKER: '/game-scripts/modules/utilities/contracts.js',
+  WORKER: '/modules/hacking/worker.js',
+  COMMAND: '/modules/hacking/command.js',
+  BOOTSTRAP: '/core/bootstrap.js',
+  CONTRACT_WORKER: '/modules/utilities/contracts.js',
 };

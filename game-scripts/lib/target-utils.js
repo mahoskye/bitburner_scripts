@@ -3,7 +3,7 @@
  * Functions for scoring and selecting optimal hack targets
  */
 
-import { SERVERS } from '/game-scripts/config/servers.js';
+import { SERVERS } from '/config/servers.js';
 
 /**
  * Calculates hack target score (money/security ratio)

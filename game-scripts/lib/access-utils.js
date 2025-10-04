@@ -3,8 +3,8 @@
  * Functions for gaining root access and managing port-opening programs
  */
 
-import { PROGRAMS } from '/game-scripts/config/money.js';
-import { SERVERS } from '/game-scripts/config/servers.js';
+import { PROGRAMS } from '/config/money.js';
+import { SERVERS } from '/config/servers.js';
 
 /**
  * Gets list of available port-opening programs
