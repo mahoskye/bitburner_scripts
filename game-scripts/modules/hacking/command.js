@@ -110,17 +110,37 @@ export async function main(ns) {
                 // Copy worker script
                 await ns.scp(WORKER_SCRIPT, hostname, "home");
 
-                // Kill only our worker scripts (not other scripts that may be running)
-                ns.scriptKill(WORKER_SCRIPT, hostname);
-
-                // Calculate max threads
+                // Calculate optimal thread count
                 const maxThreads = calculateMaxThreads(ns, WORKER_SCRIPT, hostname, 0);
 
-                if (maxThreads > 0) {
-                    // Start worker
+                // Get currently running processes
+                const processes = ns.ps(hostname);
+                const runningWorker = processes.find(p => p.filename === WORKER_SCRIPT);
+
+                // Check if worker needs deployment/restart
+                let needsDeploy = false;
+                let reason = "";
+
+                if (!runningWorker) {
+                    // No worker running
+                    needsDeploy = true;
+                    reason = "not running";
+                } else if (runningWorker.threads !== maxThreads) {
+                    // Wrong thread count (RAM upgraded or script changed)
+                    needsDeploy = true;
+                    reason = `thread mismatch (${runningWorker.threads} -> ${maxThreads})`;
+                }
+
+                if (needsDeploy && maxThreads > 0) {
+                    // Kill old worker if exists
+                    if (runningWorker) {
+                        ns.scriptKill(WORKER_SCRIPT, hostname);
+                    }
+
+                    // Start worker with correct thread count
                     const pid = ns.exec(WORKER_SCRIPT, hostname, maxThreads, PORTS.HACK_TARGET);
                     if (pid > 0) {
-                        ns.print(`  Deployed ${maxThreads} threads on ${hostname}`);
+                        ns.print(`  Deployed ${maxThreads} threads on ${hostname} (${reason})`);
                         deployedCount++;
                     }
                 }
