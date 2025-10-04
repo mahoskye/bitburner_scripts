@@ -81,10 +81,12 @@ Key constants:
 ### Legacy Architecture (Old - in game-scripts-bak/)
 
 Two execution modes via `main.js`:
-1. **Overlord Mode** - Active management (hacknet, servers, targeting, stats, Go)
+1. **Overlord Mode** - Active management (hacknet, servers, targeting, stats)
 2. **Offline Mode** - Maximum passive income (spawns max bot-workers)
 
 Legacy structure preserved for reference during refactoring.
+
+**IMPORTANT**: The `game-scripts-bak/go/` directory contains third-party code and should NOT be used as reference or copied into the new codebase. All Go-related functionality has been intentionally excluded.
 
 ## Development Notes
 
