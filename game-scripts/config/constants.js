@@ -33,9 +33,6 @@ export { HACKNET } from '/game-scripts/config/hacknet.js';
 // Stats
 export { STAT_GRINDER } from '/game-scripts/config/stats.js';
 
-// Go game
-export { GO } from '/game-scripts/config/go.js';
-
 // Miscellaneous
 export { SPECIAL } from '/game-scripts/config/misc.js';
 

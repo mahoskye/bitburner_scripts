@@ -29,15 +29,10 @@ export const INTERVALS = {
   // Server management
   SERVER_UPGRADE_CHECK: 1000,     // Wait after upgrade attempt
   SERVER_NO_UPGRADE_WAIT: 60000,  // Wait when no upgrades possible
-
-  // Go game intervals
-  GO_MOVE_DELAY: 1000,            // Delay between Go moves
-  GO_TIMEOUT: 300000,             // 5 min max per game
 };
 
 export const DELAYS = {
   SCRIPT_KILL: 1000,              // Wait after killing scripts
-  GO_START: 500,                  // Wait after starting Go player
   STATUS_CHECK: 2000,             // Wait before final status check
   TOR_WAIT: 100,                  // Wait for TOR manager
   CONTRACT_WAIT: 100,             // Wait for contract solver

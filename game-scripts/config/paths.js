@@ -12,6 +12,5 @@ export const FILES = {
 
 export const SCRIPTS = {
   BOT_WORKER: '/modules/hacking/worker.js',
-  GO_PLAYER: '/sf-modules/sf14-go.js',
   CONTRACT_WORKER: '/modules/utilities/contracts.js',
 };
