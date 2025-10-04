@@ -94,9 +94,19 @@ export async function main(ns) {
                 currentTarget = bestTarget;
             }
 
-            // Deploy workers to all accessible servers
+            // Deploy workers to all accessible servers (except home and command center)
             let deployedCount = 0;
             for (const hostname of accessibleServers) {
+                // Skip home - reserved for managers
+                if (hostname === "home") {
+                    continue;
+                }
+
+                // Skip command center - reserved for this script
+                if (hostname === currentServer) {
+                    continue;
+                }
+
                 // Copy worker script
                 await ns.scp(WORKER_SCRIPT, hostname, "home");
 
