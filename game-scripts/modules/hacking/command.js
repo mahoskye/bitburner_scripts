@@ -110,8 +110,8 @@ export async function main(ns) {
                 // Copy worker script
                 await ns.scp(WORKER_SCRIPT, hostname, "home");
 
-                // Kill existing workers
-                ns.killall(hostname, true);
+                // Kill only our worker scripts (not other scripts that may be running)
+                ns.scriptKill(WORKER_SCRIPT, hostname);
 
                 // Calculate max threads
                 const maxThreads = calculateMaxThreads(ns, WORKER_SCRIPT, hostname, 0);
