@@ -15,7 +15,7 @@
 
 import { disableCommonLogs } from '/lib/misc-utils.js';
 import { writePort } from '/lib/port-utils.js';
-import { PROGRAMS } from '/config/money.js';
+import { PROGRAMS, TOR_COSTS } from '/config/money.js';
 import { PORTS } from '/config/ports.js';
 
 export async function main(ns) {
@@ -70,6 +70,9 @@ export async function main(ns) {
         const totalCount = CONFIG.PORT_OPENERS.length;
         const missing = getMissingPrograms();
 
+        // Check TOR status
+        const hasTor = ns.hasTorRouter();
+
         // Check if all acquired
         if (missing.length === 0) {
             ns.tprint("SUCCESS: All port opener programs acquired!");
@@ -80,6 +83,7 @@ export async function main(ns) {
                 programs: acquiredCount,
                 total: totalCount,
                 missing: [],
+                hasTor: hasTor,
                 complete: true
             };
             writePort(ns, PORTS.PROGRAMS, JSON.stringify(finalStatus));
@@ -87,8 +91,11 @@ export async function main(ns) {
             return;
         }
 
-        // Build status message
+        // Get next missing program details
         const nextMissing = missing[0];
+        const cost = TOR_COSTS.PROGRAMS[nextMissing] || 0;
+
+        // Build status message
         const statusMessage = `Programs: ${acquiredCount}/${totalCount} (next: ${nextMissing})`;
 
         // Write status to port
@@ -97,6 +104,9 @@ export async function main(ns) {
             total: totalCount,
             missing: missing,
             nextMissing: nextMissing,
+            nextCost: cost,
+            hasTor: hasTor,
+            torCost: TOR_COSTS.ROUTER,
             message: statusMessage,
             complete: false
         };

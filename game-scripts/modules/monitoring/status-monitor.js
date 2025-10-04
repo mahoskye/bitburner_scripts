@@ -48,6 +48,7 @@ export async function main(ns) {
 
         const statusData = readPort(ns, PORTS.STATUS, null);
         const hacknetData = readPort(ns, PORTS.HACKNET, null);
+        const programData = readPort(ns, PORTS.PROGRAMS, null);
 
         // Parse status if available
         let hackLevel = ns.getHackingLevel();
@@ -81,6 +82,28 @@ export async function main(ns) {
                 hacknetCompleted = hacknet.completed || 0;
                 hacknetProduction = hacknet.production || 0;
                 hacknetNextAction = hacknet.nextAction;
+            } catch (e) {
+                // Invalid JSON, use defaults
+            }
+        }
+
+        // Parse program data if available
+        let programsOwned = 0;
+        let programsTotal = 5;
+        let nextProgram = null;
+        let nextProgramCost = 0;
+        let hasTor = false;
+        let torCost = 200000;
+
+        if (programData) {
+            try {
+                const programs = JSON.parse(programData);
+                programsOwned = programs.programs || 0;
+                programsTotal = programs.total || 5;
+                nextProgram = programs.nextMissing || null;
+                nextProgramCost = programs.nextCost || 0;
+                hasTor = programs.hasTor || false;
+                torCost = programs.torCost || 200000;
             } catch (e) {
                 // Invalid JSON, use defaults
             }
@@ -198,6 +221,25 @@ export async function main(ns) {
             React.createElement("div", { style: { marginTop: "15px" } },
                 React.createElement("span", { style: { color: "#ffaa00" } }, "Balance: "),
                 React.createElement("span", { style: { color: "#00ff00", fontWeight: "bold" } }, formatMoney(ns, money, 2))
+            ),
+
+            // Programs section
+            React.createElement("div", { style: { marginTop: "15px" } },
+                React.createElement("div", { style: { marginBottom: "5px" } },
+                    React.createElement("span", { style: { color: "#ffaa00" } }, "Programs: "),
+                    React.createElement("span", {
+                        style: {
+                            color: programsOwned === programsTotal ? "#00ff00" : "#ffff00",
+                            fontWeight: "bold"
+                        }
+                    }, `${programsOwned}/${programsTotal}`),
+                    React.createElement("span", {
+                        style: { marginLeft: "8px", color: hasTor ? "#00ff00" : "#ff0000" }
+                    }, hasTor ? "🌐" : `🚫 ${formatMoney(ns, torCost, 0)}`)
+                ),
+                nextProgram ? React.createElement("div", { style: { marginLeft: "10px", fontSize: "12px", color: "#999" } },
+                    `next: ${nextProgram} ${formatMoney(ns, nextProgramCost, 0)}`
+                ) : null
             ),
 
             // Footer
