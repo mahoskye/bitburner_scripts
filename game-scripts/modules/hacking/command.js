@@ -16,7 +16,7 @@ import { scanAllServers, getServerInfo, getAllAccessibleServers } from '/lib/ser
 import { gainRootAccess, getAvailablePortOpeners } from '/lib/access-utils.js';
 import { writePort } from '/lib/port-utils.js';
 import { calculateMaxThreads } from '/lib/ram-utils.js';
-import { findBestHackTarget } from '/lib/target-utils.js';
+import { findBestHackTarget, calculateHackScore } from '/lib/target-utils.js';
 import { disableCommonLogs } from '/lib/misc-utils.js';
 import { PORTS } from '/config/ports.js';
 import { INTERVALS } from '/config/timing.js';
@@ -34,6 +34,7 @@ export async function main(ns) {
     const currentServer = ns.getHostname();
     let lastDiscovery = 0;
     let currentTarget = null;
+    let currentTargetScore = 0;
 
     ns.tprint("Command server started");
     ns.tprint(`  Running on: ${currentServer}`);
@@ -86,12 +87,41 @@ export async function main(ns) {
 
             // Find best target
             const bestTarget = findBestHackTarget(ns, serverInfoList);
+            const bestTargetInfo = serverInfoList.find(s => s.hostname === bestTarget);
+            const bestTargetScore = bestTargetInfo ? calculateHackScore(bestTargetInfo, hackLevel) : 0;
 
             // Update target if changed
             if (bestTarget !== currentTarget) {
+                // Calculate score improvement to determine switch mode
+                let switchMode = "immediate";
+
+                if (currentTarget && currentTargetScore > 0) {
+                    const scoreImprovement = bestTargetScore / currentTargetScore;
+
+                    // Only switch immediately if new target is significantly better (3x+)
+                    // Otherwise, let workers finish their current operation
+                    if (scoreImprovement < 3.0) {
+                        switchMode = "after_operation";
+                        ns.print(`  Score improvement: ${scoreImprovement.toFixed(2)}x - switch after operation`);
+                    } else {
+                        ns.print(`  Score improvement: ${scoreImprovement.toFixed(2)}x - switch immediately`);
+                    }
+                } else {
+                    ns.print(`  First target or no score data - switch immediately`);
+                }
+
                 ns.print(`Target changed: ${currentTarget || 'none'} -> ${bestTarget}`);
-                writePort(ns, PORTS.HACK_TARGET, bestTarget);
+
+                // Write target data with switch mode
+                const targetData = {
+                    target: bestTarget,
+                    mode: switchMode,
+                    score: bestTargetScore
+                };
+                writePort(ns, PORTS.HACK_TARGET, JSON.stringify(targetData));
+
                 currentTarget = bestTarget;
+                currentTargetScore = bestTargetScore;
             }
 
             // Deploy workers to all accessible servers (except home and command center)
@@ -149,6 +179,16 @@ export async function main(ns) {
             ns.print(`Discovery complete: ${deployedCount} servers deployed`);
             lastDiscovery = now;
         }
+
+        // Update status port with current state
+        const timeUntilNextDiscovery = Math.max(0, Math.floor((discoveryInterval - (now - lastDiscovery)) / 1000));
+        const statusData = {
+            hackLevel: hackLevel,
+            nextDiscovery: timeUntilNextDiscovery,
+            discoveryInterval: Math.floor(discoveryInterval / 1000),
+            lastUpdate: now
+        };
+        writePort(ns, PORTS.STATUS, JSON.stringify(statusData));
 
         // Wait before next iteration
         await ns.sleep(5000);

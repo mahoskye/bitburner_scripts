@@ -30,7 +30,22 @@ export async function main(ns) {
         ns.clearLog();
 
         // Read data from ports
-        const currentTarget = readPort(ns, PORTS.HACK_TARGET, "none");
+        const targetData = readPort(ns, PORTS.HACK_TARGET, "none");
+        let currentTarget = "none";
+        let switchMode = "immediate";
+
+        // Parse target data (handle both JSON and plain string)
+        if (targetData !== "none") {
+            try {
+                const parsed = JSON.parse(targetData);
+                currentTarget = parsed.target || "none";
+                switchMode = parsed.mode || "immediate";
+            } catch (e) {
+                // Fall back to plain string format
+                currentTarget = targetData;
+            }
+        }
+
         const statusData = readPort(ns, PORTS.STATUS, null);
 
         // Parse status if available
@@ -84,10 +99,15 @@ export async function main(ns) {
                 }
             }, "⚡ BOTNET STATUS"),
 
-            // Target
+            // Target with switch mode indicator
             React.createElement("div", { style: { marginBottom: "8px" } },
                 React.createElement("span", { style: { color: "#ffaa00" } }, "Current Target: "),
-                React.createElement("span", { style: { color: "#00ff88", fontWeight: "bold" } }, currentTarget)
+                React.createElement("span", { style: { color: "#00ff88", fontWeight: "bold" } }, currentTarget),
+                switchMode === "after_operation"
+                    ? React.createElement("span", {
+                        style: { color: "#ffff00", marginLeft: "8px", fontSize: "12px" }
+                      }, "⏳ pending switch")
+                    : null
             ),
 
             // Workers

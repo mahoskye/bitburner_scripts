@@ -55,12 +55,31 @@ export async function main(ns) {
 
     while (true) {
         // Read current target from port
-        let target = ns.peek(portNumber);
-        if (target === PORT_NO_DATA) {
+        let targetData = ns.peek(portNumber);
+        let target = DEFAULT_TARGET;
+        let switchMode = "immediate";
+
+        if (targetData === PORT_NO_DATA) {
             target = DEFAULT_TARGET;
             ns.print(`[${currentServer}] No target specified. Using ${DEFAULT_TARGET}`);
         } else {
-            ns.print(`[${currentServer}] Target: ${target}`);
+            // Try to parse JSON format (new format with mode)
+            try {
+                const parsed = JSON.parse(targetData);
+                target = parsed.target || DEFAULT_TARGET;
+                switchMode = parsed.mode || "immediate";
+                ns.print(`[${currentServer}] Target: ${target} (mode: ${switchMode})`);
+            } catch (e) {
+                // Fall back to old format (plain string)
+                target = targetData;
+                ns.print(`[${currentServer}] Target: ${target} (old format, parse error: ${e.message})`);
+            }
+        }
+
+        // Validate target is a string, not the JSON object
+        if (typeof target !== "string") {
+            ns.print(`[${currentServer}] ERROR: Invalid target type: ${typeof target}, defaulting to ${DEFAULT_TARGET}`);
+            target = DEFAULT_TARGET;
         }
 
         // Inner loop - hack this target until it changes
@@ -93,18 +112,42 @@ export async function main(ns) {
                 await ns.sleep(1000);
             }
 
-            // Check if target has changed
-            const newTarget = ns.peek(portNumber);
+            // Check if target has changed based on switch mode
+            const newTargetData = ns.peek(portNumber);
 
-            if (newTarget !== PORT_NO_DATA && newTarget !== target) {
-                // Target changed - break to outer loop
-                ns.print(`[${currentServer}] Target changed: ${target} -> ${newTarget}`);
-                break;
-
-            } else if (newTarget === PORT_NO_DATA && target !== DEFAULT_TARGET) {
+            if (newTargetData === PORT_NO_DATA && target !== DEFAULT_TARGET) {
                 // Port cleared - fall back to default
                 ns.print(`[${currentServer}] Port cleared, falling back to ${DEFAULT_TARGET}`);
                 break;
+            }
+
+            if (newTargetData !== PORT_NO_DATA && newTargetData !== targetData) {
+                // Target data changed - parse it
+                let newTarget = DEFAULT_TARGET;
+                let newSwitchMode = "immediate";
+
+                try {
+                    const parsed = JSON.parse(newTargetData);
+                    newTarget = parsed.target;
+                    newSwitchMode = parsed.mode || "immediate";
+                } catch (e) {
+                    // Fall back to old format
+                    newTarget = newTargetData;
+                }
+
+                // Only switch if:
+                // 1. Target actually changed, AND
+                // 2. Mode is "immediate" OR we just completed an operation
+                if (newTarget !== target) {
+                    if (newSwitchMode === "immediate") {
+                        ns.print(`[${currentServer}] Target changed (immediate): ${target} -> ${newTarget}`);
+                        break;
+                    } else {
+                        // Mode is "after_operation" - continue with current operation
+                        // We'll check again after the next operation completes
+                        ns.print(`[${currentServer}] New target available (${newTarget}), finishing current operation first`);
+                    }
+                }
             }
         }
     }
