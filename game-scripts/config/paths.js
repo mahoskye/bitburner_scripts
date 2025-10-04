@@ -18,5 +18,6 @@ export const SCRIPTS = {
   BOOTSTRAP: '/core/bootstrap.js',
   HACKNET_MANAGER: '/modules/resources/hacknet-manager.js',
   PROGRAM_MANAGER: '/modules/resources/program-manager.js',
+  SERVER_MANAGER: '/modules/resources/server-manager.js',
   CONTRACT_WORKER: '/modules/utilities/contracts.js',
 };

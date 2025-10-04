@@ -36,6 +36,7 @@ export async function main(ns) {
     const WORKER_SCRIPT = SCRIPTS.WORKER;
     const HACKNET_SCRIPT = SCRIPTS.HACKNET_MANAGER;
     const PROGRAM_SCRIPT = SCRIPTS.PROGRAM_MANAGER;
+    const SERVER_SCRIPT = SCRIPTS.SERVER_MANAGER;
     const currentServer = ns.getHostname();
     let lastDiscovery = 0;
     let currentTarget = null;
@@ -239,7 +240,8 @@ export async function main(ns) {
         // Deploy managers sequentially (one at a time to avoid conflicts)
         const managersToDeploy = [
             { name: "hacknet", script: HACKNET_SCRIPT },
-            { name: "programs", script: PROGRAM_SCRIPT }
+            { name: "programs", script: PROGRAM_SCRIPT },
+            { name: "servers", script: SERVER_SCRIPT }
         ];
 
         for (const manager of managersToDeploy) {
@@ -254,12 +256,19 @@ export async function main(ns) {
                 const server = findBestDeploymentServer(ns, ramRequired, excludeServers);
 
                 if (server) {
-                    const dependencies = [
+                    // Base dependencies for all managers
+                    let dependencies = [
                         '/lib/misc-utils.js',
                         '/lib/port-utils.js',
                         '/config/money.js',
                         '/config/ports.js',
                     ];
+
+                    // Add server-specific dependencies
+                    if (manager.name === "servers") {
+                        dependencies.push('/lib/server-utils.js');
+                        dependencies.push('/config/paths.js');
+                    }
 
                     const result = await deployScript(ns, manager.script, dependencies, server.hostname, {
                         killExisting: false, // Don't kill - we already checked isManagerRunning()

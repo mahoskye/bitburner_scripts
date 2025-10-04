@@ -10,11 +10,12 @@ export const PORTS = {
   STAT_GRINDER: 4,          // Stat grinding/training data
   HACKNET: 5,               // Hacknet farm status and statistics
   PROGRAMS: 6,              // Program acquisition status
+  SERVERS: 7,               // Purchased server status
 
   RANGE_MIN: 1,             // Valid NetScript port range minimum
   RANGE_MAX: 20,            // Valid NetScript port range maximum
 
-  DEFAULT_MONITOR: [1, 2, 5, 6],  // Default ports to monitor in HUD
+  DEFAULT_MONITOR: [1, 2, 5, 6, 7],  // Default ports to monitor in HUD
 };
 
 export const PORT_NO_DATA = 'NULL PORT DATA';

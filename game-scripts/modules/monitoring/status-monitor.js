@@ -49,6 +49,7 @@ export async function main(ns) {
         const statusData = readPort(ns, PORTS.STATUS, null);
         const hacknetData = readPort(ns, PORTS.HACKNET, null);
         const programData = readPort(ns, PORTS.PROGRAMS, null);
+        const serverData = readPort(ns, PORTS.SERVERS, null);
 
         // Parse status if available
         let hackLevel = ns.getHackingLevel();
@@ -104,6 +105,24 @@ export async function main(ns) {
                 nextProgramCost = programs.nextCost || 0;
                 hasTor = programs.hasTor || false;
                 torCost = programs.torCost || 200000;
+            } catch (e) {
+                // Invalid JSON, use defaults
+            }
+        }
+
+        // Parse server data if available
+        let serversOwned = 0;
+        let serversMaxed = 0;
+        let serversMax = 25;
+        let serversTotalRam = 0;
+
+        if (serverData) {
+            try {
+                const servers = JSON.parse(serverData);
+                serversOwned = servers.servers || 0;
+                serversMaxed = servers.maxed || 0;
+                serversMax = servers.maxServers || 25;
+                serversTotalRam = servers.totalRam || 0;
             } catch (e) {
                 // Invalid JSON, use defaults
             }
@@ -241,6 +260,25 @@ export async function main(ns) {
                     `next: ${nextProgram} ${formatMoney(ns, nextProgramCost, 0)}`
                 ) : null
             ),
+
+            // Servers section
+            serversOwned > 0 ? React.createElement("div", { style: { marginTop: "15px" } },
+                React.createElement("div", { style: { marginBottom: "5px" } },
+                    React.createElement("span", { style: { color: "#ffaa00" } }, "Servers: "),
+                    React.createElement("span", {
+                        style: {
+                            color: serversOwned === serversMax && serversMaxed === serversMax ? "#00ff00" : "#ffff00",
+                            fontWeight: "bold"
+                        }
+                    }, `${serversOwned}/${serversMax}`),
+                    serversMaxed > 0 ? React.createElement("span", {
+                        style: { marginLeft: "8px", fontSize: "12px", color: "#00ff00" }
+                    }, `(${serversMaxed} maxed)`) : null
+                ),
+                serversTotalRam > 0 ? React.createElement("div", { style: { marginLeft: "10px", fontSize: "12px", color: "#999" } },
+                    `total RAM: ${serversTotalRam}GB`
+                ) : null
+            ) : null,
 
             // Footer
             React.createElement("div", {
