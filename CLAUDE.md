@@ -8,108 +8,88 @@ This repository contains JavaScript automation scripts for the game Bitburner, a
 
 ## Core Architecture
 
-### Two Main Execution Modes
+**Status: Under Active Refactoring**
 
-The system operates in two distinct modes, controlled via `main.js`:
+The codebase is being refactored from a monolithic structure to a modular architecture. Old code is preserved in `game-scripts-bak/` for reference.
 
-1. **Overlord Mode** (Active Management)
-   - Entry point: `game-scripts/core/overlord.js`
-   - Runs continuous management systems: hacknet farming, server purchasing, hack targeting, stat grinding, Go game automation
-   - Dynamically adjusts server discovery interval based on hacking level (30s early game → 10min late game)
-   - Manages augmentation planning and contract solving
-   - Updates best hack target via port communication
-
-2. **Offline Mode** (Resource Maximization)
-   - Entry point: `game-scripts/core/offline-worker.js`
-   - Kills management scripts on home server, preserves workers on other servers
-   - Spawns maximum threads of `bot-worker.js` using all available RAM
-   - Optimized for passive income while AFK
-
-### Port-Based Communication System
-
-Scripts communicate via NetScript ports (1-20):
-- **Port 1**: Current best hack target (read by all bot-workers)
-- **Port 2**: Status updates (discovery timers, hack level)
-- **Port 3**: Augmentation planning data
-
-Port monitor available via `monitoring/port-monitor.js` provides real-time UI overlay.
-
-### Directory Structure
+### Modular Architecture (New)
 
 ```
 game-scripts/
-├── core/           # Main orchestration scripts (overlord, offline-worker)
-├── managers/       # Resource managers (hacknet, servers, contracts, augmentations, Go)
-├── workers/        # Distributed hacking workers (bot-worker.js)
-├── discovery/      # Server discovery and backdoor management
-├── monitoring/     # Port monitors and debugging tools
-└── utils/          # Utilities (server renaming, Go debugging)
+├── config/         # Configuration constants (modular)
+│   ├── constants.js    # Index re-exporting all configs
+│   ├── ports.js        # Port communication constants
+│   ├── paths.js        # File paths and script locations
+│   ├── timing.js       # Intervals and delays
+│   ├── hacking.js      # Hack/grow/weaken thresholds, 7-tier level system
+│   ├── servers.js      # Server constants, faction servers
+│   ├── money.js        # Money thresholds, TOR costs, programs
+│   ├── hacknet.js      # Hacknet configuration
+│   ├── stats.js        # Stat grinder targets
+│   ├── go.js           # Go game (SF14) configuration
+│   └── misc.js         # Special values
+│
+├── lib/            # Shared utilities (domain-agnostic)
+│   └── (planned: formatting, math, validation modules)
+│
+├── modules/        # Domain-specific functionality
+│   ├── hacking/        # Hacking operations
+│   ├── network/        # Server discovery, deployment, backdoors
+│   ├── progression/    # Augmentations, factions, stat training
+│   ├── resources/      # Hacknet, programs, purchased servers
+│   └── utilities/      # Contracts, formatting, ports
+│
+├── sf-modules/     # Source File specific features
+│   ├── sf04-singularity.js
+│   ├── sf14-go.js      # Go game automation
+│   └── (other SF-specific modules)
+│
+└── core/           # Main orchestration
+    ├── bootstrap.js
+    ├── main.js
+    └── scheduler.js
 ```
 
-### Worker Deployment Pattern
+### Port-Based Communication System
 
-`hack-manager.js` (game-scripts/managers/hack-manager.js:1) is the central deployment system:
-1. Runs server discovery
-2. Attempts root access using available hacking programs
-3. Copies `bot-worker.js` to all rooted servers
-4. Spawns workers with maximum threads per server
-5. Workers read target from port 1 and execute weaken/grow/hack cycles
+Scripts communicate via NetScript ports (defined in `config/ports.js`):
+- **Port 1**: Current best hack target (read by all bot-workers)
+- **Port 2**: Status updates (discovery timers, hack level)
+- **Port 3**: Augmentation planning data
+- **Port 4**: Stat grinder data
+- **Port 5**: Go player status
 
-## Common Commands
+### Configuration System
 
-Start the system:
-```
-run main.js              # Overlord mode (default)
-run main.js go           # Overlord mode with Go automation
-run main.js offline      # Offline mode
-run main.js offline go   # Offline mode with Go automation
-```
+All constants are modularized for better RAM efficiency and maintainability:
 
-Individual manager scripts can be run standalone from `game-scripts/managers/`:
-```
-run managers/hack-manager.js           # Deploy/update workers
-run managers/hacknet-farm.js           # Manage hacknet nodes
-run managers/purchase-server-manager.js # Buy/upgrade servers
-run monitoring/port-monitor.js         # Show port monitor UI
-```
-
-## Key Implementation Details
-
-### Bot Worker Logic
-
-`bot-worker.js` (game-scripts/workers/bot-worker.js:1) implements adaptive hacking:
-- Weakens when security > minSecurity + 5
-- Grows when money < 50% of max
-- Hacks when money > 75% of max
-- Continuously checks port 1 for target updates
-
-### Server Discovery Scaling
-
-Discovery interval scales with progression (overlord.js:29-36):
-- <50 hack level: 30 seconds
-- <200 hack level: 2 minutes
-- <500 hack level: 5 minutes
-- 500+ hack level: 10 minutes
-
-### Target Selection Algorithm
-
-Best target scoring (overlord.js:227-264):
 ```javascript
-score = server.maxMoney / server.minSecurityLevel
+// Import specific modules (recommended - better RAM efficiency)
+import { PORTS } from '/game-scripts/config/ports.js';
+import { HACK_THRESHOLDS } from '/game-scripts/config/hacking.js';
+
+// Or import from index for convenience
+import { PORTS, HACK_THRESHOLDS, MONEY } from '/game-scripts/config/constants.js';
 ```
-Filters for: root access, non-zero money, player hack level ≥ required level
 
-### Go Game Automation
+Key constants:
+- **7-tier hacking progression**: 50 → 100 → 250 → 500 → 1000 → 1500 → 3000 (w0r1d_d43m0n)
+- **Discovery intervals**: Scale from 30s to 10min based on leveling speed and server density
+- **Stat targets**: Realistic progression for hacking, combat, and charisma
+- See `game-scripts/config/README.md` for full documentation
 
-Optional Go player available via `--go` flag:
-- Automated opponent matches for faction reputation
-- Debug utilities in `utils/go-*.js`
-- Status visible in port monitor
+### Legacy Architecture (Old - in game-scripts-bak/)
+
+Two execution modes via `main.js`:
+1. **Overlord Mode** - Active management (hacknet, servers, targeting, stats, Go)
+2. **Offline Mode** - Maximum passive income (spawns max bot-workers)
+
+Legacy structure preserved for reference during refactoring.
 
 ## Development Notes
 
 - All scripts use NetScript 2.0 (ES6 modules with `export async function main(ns)`)
-- RAM costs are critical - scripts calculate available RAM before spawning threads
-- Scripts are designed to be killed/restarted without data loss (stateless workers)
+- RAM costs are critical - import only what you need from modular configs
+- Modular architecture prioritizes separation of concerns
 - Server info cached in `/servers/server_info.txt` (JSON format)
 - Bitburner API documentation: https://github.com/bitburner-official/bitburner-src/blob/dev/markdown/bitburner.md
