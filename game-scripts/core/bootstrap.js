@@ -15,11 +15,11 @@
  *   run bootstrap.js foodnstuff   # Use specific server as command center
  */
 
-import { scanAllServers, getServerInfo } from '/game-scripts/lib/server-utils.js';
-import { gainRootAccess } from '/game-scripts/lib/access-utils.js';
-import { disableCommonLogs } from '/game-scripts/lib/misc-utils.js';
-import { FILES, SCRIPTS } from '/game-scripts/config/paths.js';
-import { SERVERS } from '/game-scripts/config/servers.js';
+import { scanAllServers, getServerInfo } from '/lib/server-utils.js';
+import { gainRootAccess } from '/lib/access-utils.js';
+import { disableCommonLogs } from '/lib/misc-utils.js';
+import { FILES, SCRIPTS } from '/config/paths.js';
+import { SERVERS } from '/config/servers.js';
 
 export async function main(ns) {
     // ============================================================================
@@ -119,18 +119,19 @@ export async function main(ns) {
         SCRIPTS.COMMAND,
         SCRIPTS.WORKER,
         // Config files
-        '/game-scripts/config/ports.js',
-        '/game-scripts/config/timing.js',
-        '/game-scripts/config/hacking.js',
-        '/game-scripts/config/servers.js',
-        '/game-scripts/config/paths.js',
+        '/config/ports.js',
+        '/config/timing.js',
+        '/config/hacking.js',
+        '/config/servers.js',
+        '/config/paths.js',
+        '/config/money.js',
         // Library files
-        '/game-scripts/lib/server-utils.js',
-        '/game-scripts/lib/access-utils.js',
-        '/game-scripts/lib/port-utils.js',
-        '/game-scripts/lib/ram-utils.js',
-        '/game-scripts/lib/target-utils.js',
-        '/game-scripts/lib/misc-utils.js',
+        '/lib/server-utils.js',
+        '/lib/access-utils.js',
+        '/lib/port-utils.js',
+        '/lib/ram-utils.js',
+        '/lib/target-utils.js',
+        '/lib/misc-utils.js',
     ];
 
     for (const file of filesToCopy) {
