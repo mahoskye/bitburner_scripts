@@ -6,6 +6,7 @@
 export const SERVERS = {
   HOME: 'home',
   DEFAULT_HACK_TARGET: 'n00dles',
+  DEFAULT_COMMAND_CENTER: 'foodnstuff',  // Fallback command center (16GB)
   PREFIX: 'pserv',                // Prefix for purchased servers
 
   RAM_MIN: 8,                     // Minimum purchased server RAM (8GB)

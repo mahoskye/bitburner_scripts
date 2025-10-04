@@ -4,13 +4,16 @@
  */
 
 export const FILES = {
-  SERVER_LIST: '/servers/server_info.txt',
-  AUGMENTATION_PLAN: '/planning/augmentation_plan.txt',
-  REPUTATION_PLAN: '/planning/reputation_plan.txt',
-  DEBUG_LOGS: '/debug/',
+  SERVER_LIST: '/data/servers.txt',
+  COMMAND_CENTER: '/data/command-center.txt',
+  AUGMENTATION_PLAN: '/data/augmentation-plan.txt',
+  REPUTATION_PLAN: '/data/reputation-plan.txt',
+  DEBUG_LOGS: '/data/debug/',
 };
 
 export const SCRIPTS = {
-  BOT_WORKER: '/modules/hacking/worker.js',
-  CONTRACT_WORKER: '/modules/utilities/contracts.js',
+  WORKER: '/game-scripts/modules/hacking/worker.js',
+  COMMAND: '/game-scripts/modules/hacking/command.js',
+  BOOTSTRAP: '/game-scripts/core/bootstrap.js',
+  CONTRACT_WORKER: '/game-scripts/modules/utilities/contracts.js',
 };
