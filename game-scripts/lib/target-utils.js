@@ -44,13 +44,23 @@ export function calculateHackScore(server, playerHackLevel) {
         return -1;
     }
 
-    // Must meet hacking level requirement
-    if (server.requiredHackingSkill > playerHackLevel) {
+    // Must meet hacking level requirement with buffer
+    // Require player level to be at least 25% higher than server requirement
+    // This ensures operations complete in reasonable time
+    const requiredBuffer = Math.max(server.requiredHackingSkill * 1.25, server.requiredHackingSkill + 10);
+    if (playerHackLevel < requiredBuffer) {
         return -1;
     }
 
-    // Calculate score: higher money and lower security = better
-    const score = server.maxMoney / server.minSecurityLevel;
+    // Calculate base score: higher money and lower security = better
+    const baseScore = server.maxMoney / server.minSecurityLevel;
+
+    // Apply multiplier based on how much we exceed the requirement
+    // More levels above requirement = faster operations = better score
+    const levelDifference = playerHackLevel - server.requiredHackingSkill;
+    const speedMultiplier = Math.min(1 + (levelDifference / 100), 2); // Cap at 2x bonus
+
+    const score = baseScore * speedMultiplier;
 
     return score;
 }

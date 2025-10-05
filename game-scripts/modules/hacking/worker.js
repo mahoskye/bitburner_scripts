@@ -18,7 +18,7 @@ export async function main(ns) {
     // ============================================================================
 
     const HACK_THRESHOLD = 0.75;      // Hack when money > 75% of max
-    const GROW_THRESHOLD = 0.5;       // Grow when money < 50% of max
+    const GROW_THRESHOLD = 0.75;      // Grow when money < 75% of max (same as hack to avoid dead zone)
     const SECURITY_MARGIN = 5;        // Weaken when security > min + 5
     const PORT_HACK_TARGET = 1;       // Port number for target coordination
     const DEFAULT_TARGET = "n00dles"; // Fallback target
@@ -90,26 +90,24 @@ export async function main(ns) {
             const minSecurity = ns.getServerMinSecurityLevel(target);
             const currentSecurity = ns.getServerSecurityLevel(target);
 
+            // Get timestamp for logging
+            const timestamp = new Date().toLocaleTimeString();
+
             // Decide action based on server state
             if (currentSecurity > minSecurity + SECURITY_MARGIN) {
                 // Priority 1: Reduce security if too high
-                ns.print(`[${currentServer}] Weakening ${target} (sec: ${currentSecurity.toFixed(1)} > ${minSecurity + SECURITY_MARGIN})`);
+                ns.print(`[${timestamp}] [${currentServer}] Weakening ${target} (sec: ${currentSecurity.toFixed(1)} > ${minSecurity + SECURITY_MARGIN})`);
                 await ns.weaken(target);
 
             } else if (currentMoney < maxMoney * GROW_THRESHOLD) {
-                // Priority 2: Grow money if too low
-                ns.print(`[${currentServer}] Growing ${target} (money: $${currentMoney.toFixed(0)} < ${(maxMoney * GROW_THRESHOLD).toFixed(0)})`);
+                // Priority 2: Grow money if below threshold
+                ns.print(`[${timestamp}] [${currentServer}] Growing ${target} (money: $${currentMoney.toFixed(0)} < ${(maxMoney * GROW_THRESHOLD).toFixed(0)})`);
                 await ns.grow(target);
 
-            } else if (currentMoney > maxMoney * HACK_THRESHOLD) {
-                // Priority 3: Hack if money is high enough
-                ns.print(`[${currentServer}] Hacking ${target} (money: $${currentMoney.toFixed(0)})`);
-                await ns.hack(target);
-
             } else {
-                // Wait if conditions aren't optimal (between grow and hack thresholds)
-                ns.print(`[${currentServer}] Waiting for optimal conditions on ${target}`);
-                await ns.sleep(1000);
+                // Priority 3: Hack (money >= threshold and security is low)
+                ns.print(`[${timestamp}] [${currentServer}] Hacking ${target} (money: $${currentMoney.toFixed(0)})`);
+                await ns.hack(target);
             }
 
             // Check if target has changed based on switch mode
