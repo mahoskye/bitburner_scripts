@@ -25,13 +25,19 @@ export { HACK_THRESHOLDS, HACK_LEVELS } from '/config/hacking.js';
 export { SERVERS, FACTION_SERVERS } from '/config/servers.js';
 
 // Money and programs
-export { MONEY, TOR_COSTS, PROGRAMS } from '/config/money.js';
+export { MONEY, TOR_COSTS, PROGRAMS, PROGRAM_CREATE_LEVEL } from '/config/money.js';
+
+// Home upgrades
+export { HOME_RAM_COSTS, getHomeUpgradeCost } from '/config/home-upgrades.js';
 
 // Hacknet
 export { HACKNET } from '/config/hacknet.js';
 
 // Stats
 export { STAT_GRINDER } from '/config/stats.js';
+
+// Settings
+export { SETTINGS } from '/config/settings.js';
 
 // Miscellaneous
 export { SPECIAL } from '/config/misc.js';
