@@ -15,7 +15,7 @@
 
 import { disableCommonLogs } from '/lib/misc-utils.js';
 import { writePort } from '/lib/port-utils.js';
-import { PROGRAMS, TOR_COSTS } from '/config/money.js';
+import { PROGRAMS, TOR_COSTS, PROGRAM_CREATE_LEVEL } from '/config/money.js';
 import { PORTS } from '/config/ports.js';
 
 export async function main(ns) {
@@ -94,6 +94,11 @@ export async function main(ns) {
         // Get next missing program details
         const nextMissing = missing[0];
         const cost = TOR_COSTS.PROGRAMS[nextMissing] || 0;
+        const createLevel = PROGRAM_CREATE_LEVEL[nextMissing] || 0;
+
+        // Check if player can create this program
+        const hackLevel = ns.getHackingLevel();
+        const canCreate = hackLevel >= createLevel;
 
         // Build status message
         const statusMessage = `Programs: ${acquiredCount}/${totalCount} (next: ${nextMissing})`;
@@ -105,6 +110,8 @@ export async function main(ns) {
             missing: missing,
             nextMissing: nextMissing,
             nextCost: cost,
+            nextCreateLevel: createLevel,
+            canCreate: canCreate,
             hasTor: hasTor,
             torCost: TOR_COSTS.ROUTER,
             message: statusMessage,

@@ -42,3 +42,15 @@ export const PROGRAMS = {
   DEEPSCAN: 'DeepscanV1.exe',
   AUTO_LINK: 'AutoLink.exe',
 };
+
+// Hacking level required to create each program
+export const PROGRAM_CREATE_LEVEL = {
+  'BruteSSH.exe': 50,
+  'FTPCrack.exe': 100,
+  'relaySMTP.exe': 250,
+  'HTTPWorm.exe': 500,
+  'SQLInject.exe': 750,
+  'ServerProfiler.exe': 75,
+  'DeepscanV1.exe': 75,
+  'AutoLink.exe': 25,
+};

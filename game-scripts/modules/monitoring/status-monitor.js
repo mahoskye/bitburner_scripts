@@ -18,6 +18,7 @@
 import { readPort } from '/lib/port-utils.js';
 import { PORTS } from '/config/ports.js';
 import { formatMoney, formatTime } from '/lib/format-utils.js';
+import { FACTION_SERVERS } from '/config/servers.js';
 
 export async function main(ns) {
     ns.disableLog("ALL");
@@ -93,6 +94,8 @@ export async function main(ns) {
         let programsTotal = 5;
         let nextProgram = null;
         let nextProgramCost = 0;
+        let nextCreateLevel = 0;
+        let canCreate = false;
         let hasTor = false;
         let torCost = 200000;
 
@@ -103,6 +106,8 @@ export async function main(ns) {
                 programsTotal = programs.total || 5;
                 nextProgram = programs.nextMissing || null;
                 nextProgramCost = programs.nextCost || 0;
+                nextCreateLevel = programs.nextCreateLevel || 0;
+                canCreate = programs.canCreate || false;
                 hasTor = programs.hasTor || false;
                 torCost = programs.torCost || 200000;
             } catch (e) {
@@ -139,6 +144,13 @@ export async function main(ns) {
         // Get player money
         const money = ns.getServerMoneyAvailable("home");
 
+        // Check home server RAM for feature unlocks
+        const homeMaxRam = ns.getServerMaxRam("home");
+
+        // Feature: Backdoor display - TODO: Move to command server with cached paths
+        // Currently disabled due to RAM cost (ns.getServer = 4GB)
+        const backdoorServers = [];
+
         // Build UI using React.createElement
         const ui = React.createElement("div", {
             style: {
@@ -147,7 +159,7 @@ export async function main(ns) {
                 padding: "10px",
                 backgroundColor: "#0a0a0a",
                 color: "#00ff00",
-                lineHeight: "1.6"
+                lineHeight: "1.4"
             }
         },
             // Title
@@ -157,13 +169,13 @@ export async function main(ns) {
                     fontWeight: "bold",
                     color: "#00ddff",
                     borderBottom: "2px solid #00ddff",
-                    paddingBottom: "5px",
-                    marginBottom: "10px"
+                    paddingBottom: "3px",
+                    marginBottom: "6px"
                 }
             }, "⚡ BOTNET STATUS"),
 
             // Target with switch mode indicator
-            React.createElement("div", { style: { marginBottom: "8px" } },
+            React.createElement("div", { style: { marginBottom: "4px" } },
                 React.createElement("span", { style: { color: "#ffaa00" } }, "Current Target: "),
                 React.createElement("span", { style: { color: "#00ff88", fontWeight: "bold" } }, currentTarget),
                 switchMode === "after_operation"
@@ -174,19 +186,19 @@ export async function main(ns) {
             ),
 
             // Workers
-            React.createElement("div", { style: { marginBottom: "8px" } },
+            React.createElement("div", { style: { marginBottom: "4px" } },
                 React.createElement("span", { style: { color: "#ffaa00" } }, "Active Workers: "),
                 React.createElement("span", { style: { color: "#00ff88", fontWeight: "bold" } }, workerCount.toString())
             ),
 
             // Hack Level
-            React.createElement("div", { style: { marginBottom: "8px" } },
+            React.createElement("div", { style: { marginBottom: "4px" } },
                 React.createElement("span", { style: { color: "#ffaa00" } }, "Hack Level: "),
                 React.createElement("span", { style: { color: "#ff6600", fontWeight: "bold" } }, hackLevel.toString())
             ),
 
             // Next Discovery
-            React.createElement("div", { style: { marginBottom: "15px" } },
+            React.createElement("div", { style: { marginBottom: "8px" } },
                 React.createElement("span", { style: { color: "#ffaa00" } }, "Next Discovery: "),
                 React.createElement("span", { style: { color: "#ffff00" } }, nextDiscovery)
             ),
@@ -198,20 +210,20 @@ export async function main(ns) {
                     fontWeight: "bold",
                     color: "#00ddff",
                     borderBottom: "1px solid #00ddff",
-                    paddingBottom: "3px",
-                    marginBottom: "8px"
+                    paddingBottom: "2px",
+                    marginBottom: "4px"
                 }
             }, "💰 INCOME"),
 
             // Script income
-            React.createElement("div", { style: { marginBottom: "5px", marginLeft: "10px" } },
+            React.createElement("div", { style: { marginBottom: "3px", marginLeft: "10px" } },
                 React.createElement("span", { style: { color: "#aaa" } }, "Scripts:  "),
                 React.createElement("span", { style: { color: "#88ff88" } }, formatMoney(ns, scriptIncome, 2) + "/s")
             ),
 
             // Hacknet section
-            React.createElement("div", { style: { marginBottom: "8px" } },
-                React.createElement("div", { style: { marginBottom: "5px", marginLeft: "10px" } },
+            React.createElement("div", { style: { marginBottom: "4px" } },
+                React.createElement("div", { style: { marginBottom: "3px", marginLeft: "10px" } },
                     React.createElement("span", { style: { color: "#aaa" } }, "Hacknet:  "),
                     React.createElement("span", { style: { color: "#88ff88" } }, formatMoney(ns, hacknetIncome, 2) + "/s")
                 ),
@@ -237,54 +249,146 @@ export async function main(ns) {
             ),
 
             // Money on hand
-            React.createElement("div", { style: { marginTop: "15px" } },
+            React.createElement("div", { style: { marginTop: "8px" } },
                 React.createElement("span", { style: { color: "#ffaa00" } }, "Balance: "),
                 React.createElement("span", { style: { color: "#00ff00", fontWeight: "bold" } }, formatMoney(ns, money, 2))
             ),
 
+            // Programs section header
+            React.createElement("div", {
+                style: {
+                    fontSize: "14px",
+                    fontWeight: "bold",
+                    color: "#00ddff",
+                    borderBottom: "1px solid #00ddff",
+                    paddingBottom: "2px",
+                    marginBottom: "4px",
+                    marginTop: "8px"
+                }
+            }, "🔓 PROGRAMS"),
+
             // Programs section
-            React.createElement("div", { style: { marginTop: "15px" } },
-                React.createElement("div", { style: { marginBottom: "5px" } },
-                    React.createElement("span", { style: { color: "#ffaa00" } }, "Programs: "),
+            React.createElement("div", { style: { marginLeft: "10px" } },
+                React.createElement("div", { style: { marginBottom: "3px" } },
+                    React.createElement("span", { style: { color: "#ffaa00" } }, "Owned: "),
                     React.createElement("span", {
                         style: {
                             color: programsOwned === programsTotal ? "#00ff00" : "#ffff00",
                             fontWeight: "bold"
                         }
                     }, `${programsOwned}/${programsTotal}`),
-                    React.createElement("span", {
-                        style: { marginLeft: "8px", color: hasTor ? "#00ff00" : "#ff0000" }
-                    }, hasTor ? "🌐" : `🚫 ${formatMoney(ns, torCost, 0)}`)
+                    hasTor ? React.createElement("span", {
+                        style: { marginLeft: "8px", color: "#00ff00" }
+                    }, "🌐") : React.createElement("span", {
+                        style: { marginLeft: "8px" }
+                    },
+                        React.createElement("span", { style: { color: "#ff0000" } }, "🚫 "),
+                        React.createElement("span", {
+                            style: {
+                                color: money >= torCost ? "#00ff00" :
+                                       money >= torCost * 0.75 ? "#ffff00" : "#ff0000"
+                            }
+                        }, formatMoney(ns, torCost, 0))
+                    )
                 ),
-                nextProgram ? React.createElement("div", { style: { marginLeft: "10px", fontSize: "12px", color: "#999" } },
-                    `next: ${nextProgram} ${formatMoney(ns, nextProgramCost, 0)}`
+                nextProgram ? React.createElement("div", { style: { fontSize: "12px" } },
+                    React.createElement("span", { style: { color: canCreate ? "#00ff00" : "#999" } },
+                        `Next: ${nextProgram} `
+                    ),
+                    React.createElement("span", {
+                        style: {
+                            color: money >= nextProgramCost ? "#00ff00" :
+                                   money >= nextProgramCost * 0.75 ? "#ffff00" : "#ff0000"
+                        }
+                    }, `${formatMoney(ns, nextProgramCost, 0)}`),
+                    !canCreate && nextCreateLevel > 0 ? React.createElement("span", {
+                        style: { color: "#ff6600", marginLeft: "4px" }
+                    }, `(lvl ${nextCreateLevel})`) : null
                 ) : null
             ),
 
             // Servers section
-            serversOwned > 0 ? React.createElement("div", { style: { marginTop: "15px" } },
-                React.createElement("div", { style: { marginBottom: "5px" } },
-                    React.createElement("span", { style: { color: "#ffaa00" } }, "Servers: "),
+            serversOwned > 0 ? React.createElement("div", null,
+                // Servers section header
+                React.createElement("div", {
+                    style: {
+                        fontSize: "14px",
+                        fontWeight: "bold",
+                        color: "#00ddff",
+                        borderBottom: "1px solid #00ddff",
+                        paddingBottom: "2px",
+                        marginBottom: "4px",
+                        marginTop: "8px"
+                    }
+                }, "🖥️ SERVERS"),
+
+                React.createElement("div", { style: { marginLeft: "10px" } },
+                    React.createElement("div", { style: { marginBottom: "3px" } },
+                        React.createElement("span", { style: { color: "#ffaa00" } }, "Count: "),
                     React.createElement("span", {
                         style: {
                             color: serversOwned === serversMax && serversMaxed === serversMax ? "#00ff00" : "#ffff00",
                             fontWeight: "bold"
                         }
                     }, `${serversOwned}/${serversMax}`),
-                    serversMaxed > 0 ? React.createElement("span", {
-                        style: { marginLeft: "8px", fontSize: "12px", color: "#00ff00" }
-                    }, `(${serversMaxed} maxed)`) : null
-                ),
-                serversTotalRam > 0 ? React.createElement("div", { style: { marginLeft: "10px", fontSize: "12px", color: "#999" } },
-                    `total RAM: ${serversTotalRam}GB`
-                ) : null
+                        serversMaxed > 0 ? React.createElement("span", {
+                            style: { marginLeft: "8px", fontSize: "12px", color: "#00ff00" }
+                        }, `(${serversMaxed} maxed)`) : null
+                    ),
+                    serversTotalRam > 0 ? React.createElement("div", { style: { fontSize: "12px", color: "#999" } },
+                        `Total RAM: ${serversTotalRam}GB`
+                    ) : null
+                )
             ) : null,
+
+            // Backdoor section
+            backdoorServers.length > 0 ? React.createElement("div", null,
+                // Backdoor section header
+                React.createElement("div", {
+                    style: {
+                        fontSize: "14px",
+                        fontWeight: "bold",
+                        color: "#00ddff",
+                        borderBottom: "1px solid #00ddff",
+                        paddingBottom: "2px",
+                        marginBottom: "4px",
+                        marginTop: "8px"
+                    }
+                }, "🚪 BACKDOORS"),
+
+                React.createElement("div", { style: { marginLeft: "10px" } },
+                    backdoorServers.map(server =>
+                        React.createElement("div", {
+                            key: server.hostname,
+                            style: { marginBottom: "5px" }
+                        },
+                            React.createElement("div", { style: { color: "#ffaa00", marginBottom: "2px" } }, server.hostname),
+                            React.createElement("div", {
+                                style: {
+                                    backgroundColor: "#1a1a1a",
+                                    padding: "4px 6px",
+                                    fontSize: "11px",
+                                    color: "#00ff00",
+                                    fontFamily: "monospace",
+                                    borderRadius: "3px",
+                                    cursor: "pointer",
+                                    userSelect: "all"
+                                },
+                                onClick: () => {
+                                    ns.tprint(`BACKDOOR COMMAND: ${server.command}`);
+                                }
+                            }, server.command)
+                        )
+                    )
+                )
+            ) : null,
+
 
             // Footer
             React.createElement("div", {
                 style: {
-                    marginTop: "15px",
-                    paddingTop: "8px",
+                    marginTop: "8px",
+                    paddingTop: "4px",
                     borderTop: "1px solid #333",
                     fontSize: "11px",
                     color: "#666",
@@ -350,4 +454,36 @@ function getAllServers(ns) {
     }
 
     return servers;
+}
+
+/**
+ * Find path from home to target server (BFS)
+ */
+function findPathToServer(ns, targetServer) {
+    const queue = [["home"]];
+    const visited = new Set(["home"]);
+
+    while (queue.length > 0) {
+        const path = queue.shift();
+        const currentServer = path[path.length - 1];
+
+        if (currentServer === targetServer) {
+            return path;
+        }
+
+        try {
+            const connections = ns.scan(currentServer);
+            for (const neighbor of connections) {
+                if (!visited.has(neighbor)) {
+                    visited.add(neighbor);
+                    queue.push([...path, neighbor]);
+                }
+            }
+        } catch (e) {
+            // Skip servers we can't scan
+            continue;
+        }
+    }
+
+    return null; // No path found
 }
