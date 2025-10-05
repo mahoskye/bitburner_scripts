@@ -18,7 +18,7 @@
 import { readPort } from '/lib/port-utils.js';
 import { PORTS } from '/config/ports.js';
 import { formatMoney, formatTime } from '/lib/format-utils.js';
-import { FACTION_SERVERS } from '/config/servers.js';
+import { getHomeUpgradeCost } from '/config/home-upgrades.js';
 
 export async function main(ns) {
     ns.disableLog("ALL");
@@ -134,7 +134,7 @@ export async function main(ns) {
         }
 
         // Get income
-        const scriptIncome = ns.getScriptIncome()[0] || 0;
+        const scriptIncome = ns.getTotalScriptIncome()[0] || 0;
         const hacknetIncome = getHacknetIncome(ns) || 0;
         totalIncome = scriptIncome + hacknetIncome;
 
@@ -146,10 +146,21 @@ export async function main(ns) {
 
         // Check home server RAM for feature unlocks
         const homeMaxRam = ns.getServerMaxRam("home");
+        const homeUpgradeCost = getHomeUpgradeCost(homeMaxRam);
+        const canAffordHomeUpgrade = homeUpgradeCost > 0 && money >= homeUpgradeCost;
 
-        // Feature: Backdoor display - TODO: Move to command server with cached paths
-        // Currently disabled due to RAM cost (ns.getServer = 4GB)
-        const backdoorServers = [];
+        // Feature: Backdoor display (requires 16GB+ home RAM)
+        // Dynamically import backdoor-utils only when needed to save RAM
+        let backdoorServers = [];
+        if (homeMaxRam >= 16) {
+            try {
+                const { getBackdoorServers } = await import('/lib/backdoor-utils.js');
+                backdoorServers = getBackdoorServers(ns);
+            } catch (e) {
+                // Import failed or not enough RAM
+                ns.print(`Backdoor feature unavailable: ${e.message}`);
+            }
+        }
 
         // Build UI using React.createElement
         const ui = React.createElement("div", {
@@ -383,6 +394,24 @@ export async function main(ns) {
                 )
             ) : null,
 
+            // Home RAM Upgrade Banner (show if upgrade available and home < 32GB)
+            homeUpgradeCost > 0 && homeMaxRam < 32 ? React.createElement("div", {
+                style: {
+                    marginTop: "8px",
+                    padding: "4px 6px",
+                    backgroundColor: canAffordHomeUpgrade ? "#1a3a1a" : "#1a1a1a",
+                    borderLeft: `3px solid ${canAffordHomeUpgrade ? "#00ff00" : "#ffaa00"}`,
+                    fontSize: "10px",
+                    color: canAffordHomeUpgrade ? "#00ff00" : "#ffaa00"
+                }
+            },
+                React.createElement("span", { style: { fontWeight: "bold" } },
+                    canAffordHomeUpgrade ? "💾 Home Upgrade Ready: " : "💾 Save for Home: "
+                ),
+                React.createElement("span", { style: { color: "#999" } },
+                    `${homeMaxRam * 2}GB (${formatMoney(ns, homeUpgradeCost, 0)})`
+                )
+            ) : null,
 
             // Footer
             React.createElement("div", {
@@ -456,34 +485,3 @@ function getAllServers(ns) {
     return servers;
 }
 
-/**
- * Find path from home to target server (BFS)
- */
-function findPathToServer(ns, targetServer) {
-    const queue = [["home"]];
-    const visited = new Set(["home"]);
-
-    while (queue.length > 0) {
-        const path = queue.shift();
-        const currentServer = path[path.length - 1];
-
-        if (currentServer === targetServer) {
-            return path;
-        }
-
-        try {
-            const connections = ns.scan(currentServer);
-            for (const neighbor of connections) {
-                if (!visited.has(neighbor)) {
-                    visited.add(neighbor);
-                    queue.push([...path, neighbor]);
-                }
-            }
-        } catch (e) {
-            // Skip servers we can't scan
-            continue;
-        }
-    }
-
-    return null; // No path found
-}
