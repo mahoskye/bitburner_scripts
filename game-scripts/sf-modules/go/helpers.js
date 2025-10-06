@@ -344,16 +344,17 @@ export async function runCommand_Custom(ns, fnRun, command, fileName, args = [],
             let reason = " (likely due to insufficient RAM)";
             // Just to be super clear - try to find out how much ram this script requires vs what we have available
             try {
+                const currentHost = ns.getHostname();
                 const reqRam = await getNsDataThroughFile_Custom(ns, fnRun, 'ns.getScriptRam(ns.args[0])', null, [fileName], false, 1, 0, true);
-                const homeMaxRam = await getNsDataThroughFile_Custom(ns, fnRun, 'ns.getServerMaxRam(ns.args[0])', null, ["home"], false, 1, 0, true);
-                const homeUsedRam = await getNsDataThroughFile_Custom(ns, fnRun, 'ns.getServerUsedRam(ns.args[0])', null, ["home"], false, 1, 0, true);
-                if (reqRam > homeMaxRam)
-                    reason = ` as it requires ${formatRam(reqRam)} RAM, but home only has ${formatRam(homeMaxRam)}`;
-                else if (reqRam > homeMaxRam - homeUsedRam)
-                    reason = ` as it requires ${formatRam(reqRam)} RAM, but home only has ${formatRam(homeMaxRam - homeUsedRam)} of ${formatRam(homeMaxRam)} free.`;
+                const hostMaxRam = await getNsDataThroughFile_Custom(ns, fnRun, 'ns.getServerMaxRam(ns.args[0])', null, [currentHost], false, 1, 0, true);
+                const hostUsedRam = await getNsDataThroughFile_Custom(ns, fnRun, 'ns.getServerUsedRam(ns.args[0])', null, [currentHost], false, 1, 0, true);
+                if (reqRam > hostMaxRam)
+                    reason = ` as it requires ${formatRam(reqRam)} RAM, but ${currentHost} only has ${formatRam(hostMaxRam)}`;
+                else if (reqRam > hostMaxRam - hostUsedRam)
+                    reason = ` as it requires ${formatRam(reqRam)} RAM, but ${currentHost} only has ${formatRam(hostMaxRam - hostUsedRam)} of ${formatRam(hostMaxRam)} free.`;
                 else
                     reason = `, but the reason is unclear. (Perhaps a syntax error?) This script requires ${formatRam(reqRam)} RAM, and ` +
-                        `home has ${formatRam(homeMaxRam - homeUsedRam)} of ${formatRam(homeMaxRam)} free, which appears to be sufficient. ` +
+                        `${currentHost} has ${formatRam(hostMaxRam - hostUsedRam)} of ${formatRam(hostMaxRam)} free, which appears to be sufficient. ` +
                         `If you wish to troubleshoot, you can try manually running the script with the arguments listed below:`;
             } catch (ex) { /* It was worth a shot. Stick with the generic error message. */ }
             return `The temp script was not run${reason}.` +

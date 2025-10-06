@@ -20,6 +20,7 @@ import { PORTS } from '/config/ports.js';
 import { formatTime, formatRam, formatWithCommas } from '/lib/format-utils.js';
 import { getHomeUpgradeCost } from '/config/home-upgrades.js';
 import { getBackdoorServers } from '/lib/backdoor-utils.js';
+import { loadManagerDeployments } from '/lib/manager-utils.js';
 
 export async function main(ns) {
     ns.disableLog("ALL");
@@ -55,6 +56,14 @@ export async function main(ns) {
         const serverData = readPort(ns, PORTS.SERVERS, null);
         const contractData = readPort(ns, PORTS.CONTRACTS, null);
         const goData = readPort(ns, PORTS.GO_PLAYER, null);
+
+        // Load manager deployment info for server hostnames
+        const managerDeployments = loadManagerDeployments(ns);
+        const hacknetServer = managerDeployments.hacknet?.server || "N/A";
+        const programsServer = managerDeployments.programs?.server || "N/A";
+        const serversServer = managerDeployments.servers?.server || "N/A";
+        const contractsServer = managerDeployments.contracts?.server || "N/A";
+        const goServer = managerDeployments.go?.server || "N/A";
 
         // Parse status if available
         let hackLevel = ns.getHackingLevel();
@@ -145,6 +154,10 @@ export async function main(ns) {
         let contractsSolved = 0;
         let contractsFailed = 0;
         let contractsSkipped = 0;
+        let contractsLastScan = 0;
+        let contractsScanSolved = 0;
+        let contractsScanFailed = 0;
+        let contractsScanSkipped = 0;
 
         if (contractData) {
             try {
@@ -152,6 +165,10 @@ export async function main(ns) {
                 contractsSolved = contracts.solved || 0;
                 contractsFailed = contracts.failed || 0;
                 contractsSkipped = contracts.skipped || 0;
+                contractsLastScan = contracts.lastScan || 0;
+                contractsScanSolved = contracts.scanSolved || 0;
+                contractsScanFailed = contracts.scanFailed || 0;
+                contractsScanSkipped = contracts.scanSkipped || 0;
             } catch (e) {
                 // Invalid JSON, use defaults
             }
@@ -269,7 +286,7 @@ export async function main(ns) {
             // Hacknet section
             React.createElement("div", { style: { marginBottom: "4px" } },
                 React.createElement("div", { style: { marginBottom: "3px", marginLeft: "10px" } },
-                    React.createElement("span", { style: { color: "#aaa" } }, "Hacknet:  "),
+                    React.createElement("span", { style: { color: "#aaa" } }, `Hacknet (${hacknetServer}):  `),
                     React.createElement("span", { style: { color: "#88ff88" } }, "$" + ns.formatNumber(hacknetIncome, 2) + "/s")
                 ),
                 hacknetNodes > 0 ? React.createElement("div", { style: { marginLeft: "22px", fontSize: "12px", color: "#666" } },
@@ -310,7 +327,7 @@ export async function main(ns) {
                     marginBottom: "4px",
                     marginTop: "8px"
                 }
-            }, "🔓 PROGRAMS"),
+            }, `🔓 PROGRAMS (${programsServer})`),
 
             // Programs section
             React.createElement("div", { style: { marginLeft: "10px" } },
@@ -365,7 +382,7 @@ export async function main(ns) {
                         marginBottom: "4px",
                         marginTop: "8px"
                     }
-                }, "🖥️ SERVERS"),
+                }, `🖥️ SERVERS (${serversServer})`),
 
                 React.createElement("div", { style: { marginLeft: "10px" } },
                     React.createElement("div", { style: { marginBottom: "3px" } },
@@ -397,8 +414,8 @@ export async function main(ns) {
                 )
             ) : null,
 
-            // Contracts section
-            (contractsSolved + contractsFailed + contractsSkipped) > 0 ? React.createElement("div", null,
+            // Contracts section (show if manager is deployed)
+            contractsServer !== "N/A" ? React.createElement("div", null,
                 // Contracts section header
                 React.createElement("div", {
                     style: {
@@ -410,18 +427,38 @@ export async function main(ns) {
                         marginBottom: "4px",
                         marginTop: "8px"
                     }
-                }, "📜 CONTRACTS"),
+                }, `📜 CONTRACTS (${contractsServer})`),
 
                 React.createElement("div", { style: { marginLeft: "10px" } },
-                    React.createElement("div", { style: { marginBottom: "3px" } },
-                        React.createElement("span", { style: { color: "#ffaa00" } }, "Solved: "),
-                        React.createElement("span", { style: { color: "#00ff00", fontWeight: "bold" } }, formatWithCommas(contractsSolved))
-                    ),
-                    contractsFailed > 0 ? React.createElement("div", { style: { fontSize: "12px", color: "#ff6666" } },
-                        `Failed: ${contractsFailed}`
-                    ) : null,
-                    contractsSkipped > 0 ? React.createElement("div", { style: { fontSize: "12px", color: "#999" } },
-                        `Skipped: ${contractsSkipped} (unsupported)`
+                    // Show current scan status
+                    (contractsScanSolved + contractsScanFailed + contractsScanSkipped) > 0 ?
+                        React.createElement("div", { style: { marginBottom: "3px", color: "#ffaa00" } },
+                            React.createElement("span", null, "Working: "),
+                            React.createElement("span", { style: { color: "#00ff00" } },
+                                `${contractsScanSolved} solved`
+                            ),
+                            contractsScanFailed > 0 ? React.createElement("span", { style: { color: "#ff6666", marginLeft: "8px" } },
+                                `${contractsScanFailed} failed`
+                            ) : null,
+                            contractsScanSkipped > 0 ? React.createElement("span", { style: { color: "#999", marginLeft: "8px" } },
+                                `${contractsScanSkipped} skipped`
+                            ) : null
+                        ) :
+                        React.createElement("div", { style: { marginBottom: "3px", color: "#999", fontSize: "12px" } },
+                            "⏳ Waiting for contracts..."
+                        ),
+                    // Lifetime stats
+                    contractsSolved > 0 ? React.createElement("div", { style: { fontSize: "12px", color: "#666", marginTop: "3px" } },
+                        React.createElement("span", null, "Lifetime: "),
+                        React.createElement("span", { style: { color: "#00ff00" } },
+                            `${formatWithCommas(contractsSolved)} solved`
+                        ),
+                        contractsFailed > 0 ? React.createElement("span", { style: { color: "#ff6666", marginLeft: "8px" } },
+                            `${contractsFailed} failed`
+                        ) : null,
+                        contractsSkipped > 0 ? React.createElement("span", { style: { color: "#888", marginLeft: "8px" } },
+                            `${contractsSkipped} skipped`
+                        ) : null
                     ) : null
                 )
             ) : null,
@@ -439,7 +476,7 @@ export async function main(ns) {
                         marginBottom: "4px",
                         marginTop: "8px"
                     }
-                }, "🎮 GO"),
+                }, `🎮 GO (${goServer})`),
 
                 React.createElement("div", { style: { marginLeft: "10px" } },
                     React.createElement("div", { style: { marginBottom: "3px" } },

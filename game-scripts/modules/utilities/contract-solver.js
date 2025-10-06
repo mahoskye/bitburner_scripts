@@ -99,6 +99,9 @@ export async function main(ns) {
             solved: lifetimeSolved,
             failed: lifetimeFailed,
             skipped: lifetimeSkipped,
+            scanSolved: scanSolved,
+            scanFailed: scanFailed,
+            scanSkipped: scanSkipped,
             lastScan: Date.now()
         };
         writePort(ns, PORTS.CONTRACTS, JSON.stringify(statusData));

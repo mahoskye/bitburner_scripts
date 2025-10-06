@@ -19,7 +19,7 @@ import { calculateMaxThreads } from '/lib/ram-utils.js';
 import { findBestHackTarget, calculateHackScore } from '/lib/target-utils.js';
 import { disableCommonLogs } from '/lib/misc-utils.js';
 import { findBestDeploymentServer, deployScript, getScriptRamCost } from '/lib/deployment-utils.js';
-import { isManagerRunning, registerManagerDeployment, cleanupStaleDeployments } from '/lib/manager-utils.js';
+import { isManagerRunning, registerManagerDeployment, cleanupStaleDeployments, loadManagerDeployments } from '/lib/manager-utils.js';
 import { PORTS } from '/config/ports.js';
 import { INTERVALS } from '/config/timing.js';
 import { HACK_LEVELS } from '/config/hacking.js';
@@ -140,8 +140,13 @@ export async function main(ns) {
                 currentTargetScore = bestTargetScore;
             }
 
-            // Deploy workers to all accessible servers (except home and command center)
+            // Deploy workers to all accessible servers (except home, command center, and Go manager server)
             let deployedCount = 0;
+
+            // Get Go manager server (needs exclusive RAM for dynamic temp scripts)
+            const managerDeployments = loadManagerDeployments(ns);
+            const goManagerServer = managerDeployments.go?.server;
+
             for (const hostname of accessibleServers) {
                 // Skip home - reserved for managers
                 if (hostname === "home") {
@@ -150,6 +155,11 @@ export async function main(ns) {
 
                 // Skip command center - reserved for this script
                 if (hostname === currentServer) {
+                    continue;
+                }
+
+                // Skip Go manager server - it needs exclusive RAM for temp scripts
+                if (goManagerServer && hostname === goManagerServer) {
                     continue;
                 }
 
@@ -203,10 +213,14 @@ export async function main(ns) {
             const allServers = scanAllServers(ns);
             const accessibleServers = getAllAccessibleServers(ns, allServers);
 
+            // Get Go manager server (needs exclusive RAM for dynamic temp scripts)
+            const managerDeployments = loadManagerDeployments(ns);
+            const goManagerServer = managerDeployments.go?.server;
+
             let updatedCount = 0;
             for (const hostname of accessibleServers) {
-                // Skip home and command center
-                if (hostname === "home" || hostname === currentServer) {
+                // Skip home, command center, and Go manager server
+                if (hostname === "home" || hostname === currentServer || (goManagerServer && hostname === goManagerServer)) {
                     continue;
                 }
 
@@ -252,12 +266,38 @@ export async function main(ns) {
             if (!isManagerRunning(ns, manager.name)) {
                 // Copy manager script to command server temporarily to check RAM cost
                 await ns.scp(manager.script, currentServer, "home");
-                const ramRequired = getScriptRamCost(ns, manager.script);
+                let ramRequired = getScriptRamCost(ns, manager.script);
+                let server = null;
 
-                // Exclude home, command center, and n00dles (workers only)
-                const excludeServers = ["home", currentServer, "n00dles"];
+                // Special case: Go manager needs extra RAM for the bot + temp scripts (~20GB total)
+                if (manager.name === "go") {
+                    // Copy go-player to check its RAM cost
+                    await ns.scp('/sf-modules/go/go-player.js', currentServer, "home");
+                    const goBotRam = getScriptRamCost(ns, '/sf-modules/go/go-player.js');
+                    // Add manager + bot + buffer for temp scripts (typically 17.6GB)
+                    ramRequired = ramRequired + goBotRam + 18;
 
-                const server = findBestDeploymentServer(ns, ramRequired, excludeServers);
+                    // Prioritize purchased servers for Go bot (they have lots of RAM)
+                    const purchasedServers = ns.getPurchasedServers();
+                    for (const pserver of purchasedServers) {
+                        const maxRam = ns.getServerMaxRam(pserver);
+                        const usedRam = ns.getServerUsedRam(pserver);
+                        const freeRam = maxRam - usedRam;
+
+                        if (freeRam >= ramRequired) {
+                            server = { hostname: pserver, maxRam: maxRam, usedRam: usedRam };
+                            ns.print(`Using purchased server ${pserver} for Go manager (${freeRam.toFixed(2)}GB free)`);
+                            break;
+                        }
+                    }
+                }
+
+                // Fallback to normal server selection if no purchased server found (or not Go manager)
+                if (!server) {
+                    // Exclude home, command center, and n00dles (workers only)
+                    const excludeServers = ["home", currentServer, "n00dles"];
+                    server = findBestDeploymentServer(ns, ramRequired, excludeServers);
+                }
 
                 if (server) {
                     // Base dependencies for all managers
@@ -275,7 +315,7 @@ export async function main(ns) {
                     } else if (manager.name === "contracts") {
                         dependencies.push('/lib/server-utils.js');
                     } else if (manager.name === "go") {
-                        // Go manager needs the go bot files
+                        // Go manager needs the bot files on the deployment server
                         dependencies.push('/sf-modules/go/go-player.js');
                         dependencies.push('/sf-modules/go/helpers.js');
                     }
