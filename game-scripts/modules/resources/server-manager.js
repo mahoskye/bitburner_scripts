@@ -168,12 +168,32 @@ export async function main(ns) {
         const maxed = servers.filter(s => s.ram >= maxRam).length;
         const totalRam = servers.reduce((sum, s) => sum + s.ram, 0);
 
+        // Calculate next action and cost
+        let nextAction = null;
+        let nextCost = 0;
+
+        if (total < CONFIG.SERVER_LIMIT) {
+            // Next action: purchase new server
+            nextAction = "purchase";
+            nextCost = ns.getPurchasedServerCost(CONFIG.MIN_RAM);
+        } else if (maxed < total) {
+            // Next action: upgrade existing server
+            const serverToUpgrade = servers.sort((a, b) => a.ram - b.ram).find(s => s.ram < maxRam);
+            if (serverToUpgrade) {
+                const nextRam = getNextRamUpgrade(ns, serverToUpgrade.ram);
+                nextAction = "upgrade";
+                nextCost = ns.getPurchasedServerCost(nextRam);
+            }
+        }
+
         const statusData = {
             servers: total,
             maxServers: CONFIG.SERVER_LIMIT,
             maxed: maxed,
             totalRam: totalRam,
             allMaxed: maxed === total && total === CONFIG.SERVER_LIMIT,
+            nextAction: nextAction,
+            nextCost: nextCost,
             lastAction: action,
             timestamp: Date.now()
         };

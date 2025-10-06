@@ -123,6 +123,8 @@ export async function main(ns) {
         let serversMaxed = 0;
         let serversMax = 25;
         let serversTotalRam = 0;
+        let serverNextAction = null;
+        let serverNextCost = 0;
 
         if (serverData) {
             try {
@@ -131,6 +133,8 @@ export async function main(ns) {
                 serversMaxed = servers.maxed || 0;
                 serversMax = servers.maxServers || 25;
                 serversTotalRam = servers.totalRam || 0;
+                serverNextAction = servers.nextAction || null;
+                serverNextCost = servers.nextCost || 0;
             } catch (e) {
                 // Invalid JSON, use defaults
             }
@@ -365,6 +369,17 @@ export async function main(ns) {
                     ),
                     serversTotalRam > 0 ? React.createElement("div", { style: { fontSize: "12px", color: "#999" } },
                         `Total RAM: ${formatRam(serversTotalRam)}`
+                    ) : null,
+                    serverNextAction && serverNextCost > 0 ? React.createElement("div", { style: { fontSize: "12px", marginTop: "3px" } },
+                        React.createElement("span", { style: { color: "#aaa" } },
+                            `Next ${serverNextAction}: `
+                        ),
+                        React.createElement("span", {
+                            style: {
+                                color: money >= serverNextCost ? "#00ff00" :
+                                       money >= serverNextCost * 0.75 ? "#ffff00" : "#ff6666"
+                            }
+                        }, `$${ns.formatNumber(serverNextCost, 0)}`)
                     ) : null
                 )
             ) : null,
