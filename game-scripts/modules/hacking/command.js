@@ -45,6 +45,9 @@ export async function main(ns) {
     let currentTarget = null;
     let currentTargetScore = 0;
     let needsWorkerUpdate = false;
+    let rootedServers = new Set(); // Track rooted servers to avoid re-attempting root
+    let cachedServerList = null; // Cache server list to reduce scans
+    let lastServerCount = 0; // Track purchased server count to detect changes
 
     ns.tprint("Command server started");
     ns.tprint(`  Running on: ${currentServer}`);
@@ -80,17 +83,41 @@ export async function main(ns) {
         if (discoveryDue) {
             ns.print(`Running discovery (hack level: ${hackLevel})...`);
 
-            // Scan network
-            const allServers = scanAllServers(ns);
-            ns.print(`  Found ${allServers.length} servers`);
+            // Check if we need to rescan (new purchased servers or no cache)
+            const currentServerCount = ns.getPurchasedServers().length;
+            const needsRescan = !cachedServerList || currentServerCount !== lastServerCount;
 
-            // Attempt root access on all servers
+            let allServers;
+            if (needsRescan) {
+                // Scan network
+                allServers = scanAllServers(ns);
+                cachedServerList = allServers;
+                lastServerCount = currentServerCount;
+                needsWorkerUpdate = true; // New servers = need worker update
+                ns.print(`  Found ${allServers.length} servers (rescanned)`);
+            } else {
+                // Use cached list
+                allServers = cachedServerList;
+                ns.print(`  Using cached ${allServers.length} servers`);
+            }
+
+            // Attempt root access only on servers we haven't rooted yet
             let rootedCount = 0;
             for (const hostname of allServers) {
+                // Skip if already in our rooted set
+                if (rootedServers.has(hostname)) {
+                    continue;
+                }
+
+                // Try to gain root access
                 const result = gainRootAccess(ns, hostname);
-                if (result.success && !result.alreadyRooted) {
-                    ns.print(`  Rooted: ${hostname}`);
-                    rootedCount++;
+                if (result.success) {
+                    rootedServers.add(hostname);
+                    if (!result.alreadyRooted) {
+                        ns.print(`  Rooted: ${hostname}`);
+                        rootedCount++;
+                        needsWorkerUpdate = true; // New rooted server = need worker update
+                    }
                 }
             }
 
@@ -141,14 +168,15 @@ export async function main(ns) {
                 currentTargetScore = bestTargetScore;
             }
 
-            // Deploy workers to all accessible servers (except home, command center, and Go manager server)
+            // Deploy workers only if something changed (new servers, new roots, manager deployed)
             let deployedCount = 0;
 
-            // Get Go manager server (needs exclusive RAM for dynamic temp scripts)
-            const managerDeployments = loadManagerDeployments(ns);
-            const goManagerServer = managerDeployments.go?.server;
+            if (needsWorkerUpdate) {
+                // Get Go manager server (needs exclusive RAM for dynamic temp scripts)
+                const managerDeployments = loadManagerDeployments(ns);
+                const goManagerServer = managerDeployments.go?.server;
 
-            for (const hostname of accessibleServers) {
+                for (const hostname of accessibleServers) {
                 // Skip home - reserved for managers
                 if (hostname === "home") {
                     continue;
@@ -201,11 +229,16 @@ export async function main(ns) {
                         deployedCount++;
                     }
                 }
+                }
+
+                ns.print(`Worker deployment: ${deployedCount} servers deployed`);
+                needsWorkerUpdate = false; // Reset flag after worker update
+            } else {
+                ns.print(`Worker deployment: skipped (no changes)`);
             }
 
-            ns.print(`Discovery complete: ${deployedCount} servers deployed`);
+            ns.print(`Discovery complete`);
             lastDiscovery = now;
-            needsWorkerUpdate = false; // Reset flag after worker update
         }
 
         // Update workers if manager deployment changed RAM availability
@@ -334,9 +367,6 @@ export async function main(ns) {
                         ns.print(`SUCCESS: ${result.message}`);
                         ns.tprint(`${manager.name} manager deployed to ${server.hostname}`);
                         needsWorkerUpdate = true; // Trigger worker redeployment
-
-                        // Break out of loop to let deployment settle before next iteration
-                        break;
                     } else {
                         ns.print(`WARNING: ${result.message}`);
                     }
