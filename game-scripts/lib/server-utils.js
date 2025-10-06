@@ -84,6 +84,7 @@ export function getServerInfo(ns, hostname) {
             maxMoney: ns.getServerMaxMoney(hostname),
             minSecurityLevel: ns.getServerMinSecurityLevel(hostname),
             currentSecurityLevel: ns.getServerSecurityLevel(hostname),
+            serverGrowth: ns.getServerGrowth(hostname),
         };
     } catch (error) {
         ns.print(`ERROR: Failed to get info for ${hostname}: ${error.message}`);

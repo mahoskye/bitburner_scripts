@@ -60,7 +60,13 @@ export function calculateHackScore(server, playerHackLevel) {
     const levelDifference = playerHackLevel - server.requiredHackingSkill;
     const speedMultiplier = Math.min(1 + (levelDifference / 100), 2); // Cap at 2x bonus
 
-    const score = baseScore * speedMultiplier;
+    // Growth rate bonus: servers with higher growth refill faster
+    // Typical growth range is 1-100, normalize to 0-1 bonus
+    const growthBonus = server.serverGrowth ? Math.min(server.serverGrowth / 100, 1) : 0;
+    const growthMultiplier = 1 + growthBonus;
+
+    // Combine all factors
+    const score = baseScore * speedMultiplier * growthMultiplier;
 
     return score;
 }
