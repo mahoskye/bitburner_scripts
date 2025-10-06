@@ -13,7 +13,7 @@
  */
 
 import { scanAllServers, getServerInfo, getAllAccessibleServers } from '/lib/server-utils.js';
-import { gainRootAccess, getAvailablePortOpeners } from '/lib/access-utils.js';
+import { gainRootAccess } from '/lib/access-utils.js';
 import { writePort } from '/lib/port-utils.js';
 import { calculateMaxThreads } from '/lib/ram-utils.js';
 import { findBestHackTarget, calculateHackScore } from '/lib/target-utils.js';
