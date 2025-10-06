@@ -54,6 +54,7 @@ export async function main(ns) {
         const programData = readPort(ns, PORTS.PROGRAMS, null);
         const serverData = readPort(ns, PORTS.SERVERS, null);
         const contractData = readPort(ns, PORTS.CONTRACTS, null);
+        const goData = readPort(ns, PORTS.GO_PLAYER, null);
 
         // Parse status if available
         let hackLevel = ns.getHackingLevel();
@@ -151,6 +152,18 @@ export async function main(ns) {
                 contractsSolved = contracts.solved || 0;
                 contractsFailed = contracts.failed || 0;
                 contractsSkipped = contracts.skipped || 0;
+            } catch (e) {
+                // Invalid JSON, use defaults
+            }
+        }
+
+        // Parse Go data if available
+        let goActive = false;
+
+        if (goData) {
+            try {
+                const go = JSON.parse(goData);
+                goActive = go.active || false;
             } catch (e) {
                 // Invalid JSON, use defaults
             }
@@ -410,6 +423,29 @@ export async function main(ns) {
                     contractsSkipped > 0 ? React.createElement("div", { style: { fontSize: "12px", color: "#999" } },
                         `Skipped: ${contractsSkipped} (unsupported)`
                     ) : null
+                )
+            ) : null,
+
+            // Go section
+            goActive ? React.createElement("div", null,
+                // Go section header
+                React.createElement("div", {
+                    style: {
+                        fontSize: "14px",
+                        fontWeight: "bold",
+                        color: "#00ddff",
+                        borderBottom: "1px solid #00ddff",
+                        paddingBottom: "2px",
+                        marginBottom: "4px",
+                        marginTop: "8px"
+                    }
+                }, "🎮 GO"),
+
+                React.createElement("div", { style: { marginLeft: "10px" } },
+                    React.createElement("div", { style: { marginBottom: "3px" } },
+                        React.createElement("span", { style: { color: "#00ff00" } }, "Active "),
+                        React.createElement("span", { style: { color: "#999", fontSize: "12px" } }, "(playing matches)")
+                    )
                 )
             ) : null,
 

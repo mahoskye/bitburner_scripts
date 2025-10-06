@@ -20,4 +20,5 @@ export const SCRIPTS = {
   PROGRAM_MANAGER: '/modules/resources/program-manager.js',
   SERVER_MANAGER: '/modules/resources/server-manager.js',
   CONTRACT_SOLVER: '/modules/utilities/contract-solver.js',
+  GO_MANAGER: '/sf-modules/go-manager.js',
 };

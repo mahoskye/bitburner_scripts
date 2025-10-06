@@ -38,6 +38,7 @@ export async function main(ns) {
     const PROGRAM_SCRIPT = SCRIPTS.PROGRAM_MANAGER;
     const SERVER_SCRIPT = SCRIPTS.SERVER_MANAGER;
     const CONTRACT_SCRIPT = SCRIPTS.CONTRACT_SOLVER;
+    const GO_SCRIPT = SCRIPTS.GO_MANAGER;
     const currentServer = ns.getHostname();
     let lastDiscovery = 0;
     let currentTarget = null;
@@ -243,7 +244,8 @@ export async function main(ns) {
             { name: "hacknet", script: HACKNET_SCRIPT },
             { name: "programs", script: PROGRAM_SCRIPT },
             { name: "servers", script: SERVER_SCRIPT },
-            { name: "contracts", script: CONTRACT_SCRIPT }
+            { name: "contracts", script: CONTRACT_SCRIPT },
+            { name: "go", script: GO_SCRIPT }
         ];
 
         for (const manager of managersToDeploy) {
@@ -272,6 +274,10 @@ export async function main(ns) {
                         dependencies.push('/config/paths.js');
                     } else if (manager.name === "contracts") {
                         dependencies.push('/lib/server-utils.js');
+                    } else if (manager.name === "go") {
+                        // Go manager needs the go bot files
+                        dependencies.push('/sf-modules/go/go-player.js');
+                        dependencies.push('/sf-modules/go/helpers.js');
                     }
 
                     const result = await deployScript(ns, manager.script, dependencies, server.hostname, {
