@@ -19,5 +19,5 @@ export const SCRIPTS = {
   HACKNET_MANAGER: '/modules/resources/hacknet-manager.js',
   PROGRAM_MANAGER: '/modules/resources/program-manager.js',
   SERVER_MANAGER: '/modules/resources/server-manager.js',
-  CONTRACT_WORKER: '/modules/utilities/contracts.js',
+  CONTRACT_SOLVER: '/modules/utilities/contract-solver.js',
 };

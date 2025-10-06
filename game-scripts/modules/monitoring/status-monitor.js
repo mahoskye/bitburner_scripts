@@ -53,6 +53,7 @@ export async function main(ns) {
         const hacknetData = readPort(ns, PORTS.HACKNET, null);
         const programData = readPort(ns, PORTS.PROGRAMS, null);
         const serverData = readPort(ns, PORTS.SERVERS, null);
+        const contractData = readPort(ns, PORTS.CONTRACTS, null);
 
         // Parse status if available
         let hackLevel = ns.getHackingLevel();
@@ -130,6 +131,22 @@ export async function main(ns) {
                 serversMaxed = servers.maxed || 0;
                 serversMax = servers.maxServers || 25;
                 serversTotalRam = servers.totalRam || 0;
+            } catch (e) {
+                // Invalid JSON, use defaults
+            }
+        }
+
+        // Parse contract data if available
+        let contractsSolved = 0;
+        let contractsFailed = 0;
+        let contractsSkipped = 0;
+
+        if (contractData) {
+            try {
+                const contracts = JSON.parse(contractData);
+                contractsSolved = contracts.solved || 0;
+                contractsFailed = contracts.failed || 0;
+                contractsSkipped = contracts.skipped || 0;
             } catch (e) {
                 // Invalid JSON, use defaults
             }
@@ -348,6 +365,35 @@ export async function main(ns) {
                     ),
                     serversTotalRam > 0 ? React.createElement("div", { style: { fontSize: "12px", color: "#999" } },
                         `Total RAM: ${formatRam(serversTotalRam)}`
+                    ) : null
+                )
+            ) : null,
+
+            // Contracts section
+            (contractsSolved + contractsFailed + contractsSkipped) > 0 ? React.createElement("div", null,
+                // Contracts section header
+                React.createElement("div", {
+                    style: {
+                        fontSize: "14px",
+                        fontWeight: "bold",
+                        color: "#00ddff",
+                        borderBottom: "1px solid #00ddff",
+                        paddingBottom: "2px",
+                        marginBottom: "4px",
+                        marginTop: "8px"
+                    }
+                }, "📜 CONTRACTS"),
+
+                React.createElement("div", { style: { marginLeft: "10px" } },
+                    React.createElement("div", { style: { marginBottom: "3px" } },
+                        React.createElement("span", { style: { color: "#ffaa00" } }, "Solved: "),
+                        React.createElement("span", { style: { color: "#00ff00", fontWeight: "bold" } }, formatWithCommas(contractsSolved))
+                    ),
+                    contractsFailed > 0 ? React.createElement("div", { style: { fontSize: "12px", color: "#ff6666" } },
+                        `Failed: ${contractsFailed}`
+                    ) : null,
+                    contractsSkipped > 0 ? React.createElement("div", { style: { fontSize: "12px", color: "#999" } },
+                        `Skipped: ${contractsSkipped} (unsupported)`
                     ) : null
                 )
             ) : null,

@@ -37,6 +37,7 @@ export async function main(ns) {
     const HACKNET_SCRIPT = SCRIPTS.HACKNET_MANAGER;
     const PROGRAM_SCRIPT = SCRIPTS.PROGRAM_MANAGER;
     const SERVER_SCRIPT = SCRIPTS.SERVER_MANAGER;
+    const CONTRACT_SCRIPT = SCRIPTS.CONTRACT_SOLVER;
     const currentServer = ns.getHostname();
     let lastDiscovery = 0;
     let currentTarget = null;
@@ -241,7 +242,8 @@ export async function main(ns) {
         const managersToDeploy = [
             { name: "hacknet", script: HACKNET_SCRIPT },
             { name: "programs", script: PROGRAM_SCRIPT },
-            { name: "servers", script: SERVER_SCRIPT }
+            { name: "servers", script: SERVER_SCRIPT },
+            { name: "contracts", script: CONTRACT_SCRIPT }
         ];
 
         for (const manager of managersToDeploy) {
@@ -264,10 +266,12 @@ export async function main(ns) {
                         '/config/ports.js',
                     ];
 
-                    // Add server-specific dependencies
+                    // Add manager-specific dependencies
                     if (manager.name === "servers") {
                         dependencies.push('/lib/server-utils.js');
                         dependencies.push('/config/paths.js');
+                    } else if (manager.name === "contracts") {
+                        dependencies.push('/lib/server-utils.js');
                     }
 
                     const result = await deployScript(ns, manager.script, dependencies, server.hostname, {
