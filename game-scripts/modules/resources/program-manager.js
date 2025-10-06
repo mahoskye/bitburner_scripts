@@ -64,6 +64,8 @@ export async function main(ns) {
     // MAIN LOOP
     // ============================================================================
 
+    let hasAnnounced = false;
+
     while (true) {
         // Count acquired programs
         const acquiredCount = CONFIG.PORT_OPENERS.filter(p => hasProgram(p)).length;
@@ -75,21 +77,30 @@ export async function main(ns) {
 
         // Check if all acquired
         if (missing.length === 0) {
-            ns.tprint("SUCCESS: All port opener programs acquired!");
-            ns.tprint("Program tracker shutting down.");
+            // Only announce once
+            if (!hasAnnounced) {
+                ns.tprint("SUCCESS: All port opener programs acquired!");
+                hasAnnounced = true;
+            }
 
-            // Write final status
+            // Write complete status
             const finalStatus = {
                 programs: acquiredCount,
                 total: totalCount,
                 missing: [],
                 hasTor: hasTor,
+                torCost: TOR_COSTS.ROUTER,
                 complete: true
             };
             writePort(ns, PORTS.PROGRAMS, JSON.stringify(finalStatus));
 
-            return;
+            ns.print("All programs acquired - monitoring for changes");
+            await ns.sleep(CONFIG.UPDATE_INTERVAL);
+            continue;
         }
+
+        // Reset announcement flag if we lose programs (shouldn't happen but just in case)
+        hasAnnounced = false;
 
         // Get next missing program details
         const nextMissing = missing[0];
