@@ -17,8 +17,9 @@
 
 import { readPort } from '/lib/port-utils.js';
 import { PORTS } from '/config/ports.js';
-import { formatMoney, formatTime } from '/lib/format-utils.js';
+import { formatTime, formatRam, formatWithCommas } from '/lib/format-utils.js';
 import { getHomeUpgradeCost } from '/config/home-upgrades.js';
+import { getBackdoorServers } from '/lib/backdoor-utils.js';
 
 export async function main(ns) {
     ns.disableLog("ALL");
@@ -28,9 +29,10 @@ export async function main(ns) {
     ns.ui.openTail();
 
     while (true) {
-        ns.clearLog();
+        try {
+            ns.clearLog();
 
-        // Read data from ports
+            // Read data from ports
         const targetData = readPort(ns, PORTS.HACK_TARGET, "none");
         let currentTarget = "none";
         let switchMode = "immediate";
@@ -150,14 +152,12 @@ export async function main(ns) {
         const canAffordHomeUpgrade = homeUpgradeCost > 0 && money >= homeUpgradeCost;
 
         // Feature: Backdoor display (requires 16GB+ home RAM)
-        // Dynamically import backdoor-utils only when needed to save RAM
         let backdoorServers = [];
         if (homeMaxRam >= 16) {
             try {
-                const { getBackdoorServers } = await import('/lib/backdoor-utils.js');
                 backdoorServers = getBackdoorServers(ns);
             } catch (e) {
-                // Import failed or not enough RAM
+                // Backdoor feature unavailable (likely not enough RAM)
                 ns.print(`Backdoor feature unavailable: ${e.message}`);
             }
         }
@@ -199,7 +199,7 @@ export async function main(ns) {
             // Workers
             React.createElement("div", { style: { marginBottom: "4px" } },
                 React.createElement("span", { style: { color: "#ffaa00" } }, "Active Workers: "),
-                React.createElement("span", { style: { color: "#00ff88", fontWeight: "bold" } }, workerCount.toString())
+                React.createElement("span", { style: { color: "#00ff88", fontWeight: "bold" } }, formatWithCommas(workerCount))
             ),
 
             // Hack Level
@@ -229,20 +229,20 @@ export async function main(ns) {
             // Script income
             React.createElement("div", { style: { marginBottom: "3px", marginLeft: "10px" } },
                 React.createElement("span", { style: { color: "#aaa" } }, "Scripts:  "),
-                React.createElement("span", { style: { color: "#88ff88" } }, formatMoney(ns, scriptIncome, 2) + "/s")
+                React.createElement("span", { style: { color: "#88ff88" } }, "$" + ns.formatNumber(scriptIncome, 2) + "/s")
             ),
 
             // Hacknet section
             React.createElement("div", { style: { marginBottom: "4px" } },
                 React.createElement("div", { style: { marginBottom: "3px", marginLeft: "10px" } },
                     React.createElement("span", { style: { color: "#aaa" } }, "Hacknet:  "),
-                    React.createElement("span", { style: { color: "#88ff88" } }, formatMoney(ns, hacknetIncome, 2) + "/s")
+                    React.createElement("span", { style: { color: "#88ff88" } }, "$" + ns.formatNumber(hacknetIncome, 2) + "/s")
                 ),
                 hacknetNodes > 0 ? React.createElement("div", { style: { marginLeft: "22px", fontSize: "12px", color: "#666" } },
                     `${hacknetNodes}/${hacknetMaxNodes} nodes (${hacknetCompleted} maxed)`,
                     hacknetNextAction ?
                         React.createElement("span", { style: { color: "#999", marginLeft: "8px" } },
-                            `next: ${hacknetNextAction.type} (${formatMoney(ns, hacknetNextAction.cost, 0)})`
+                            `next: ${hacknetNextAction.type} ($${ns.formatNumber(hacknetNextAction.cost, 0)})`
                         ) : null
                 ) : null
             ),
@@ -256,13 +256,13 @@ export async function main(ns) {
                 }
             },
                 React.createElement("span", { style: { color: "#aaa" } }, "Total:    "),
-                React.createElement("span", { style: { color: "#ffaa00", fontWeight: "bold" } }, formatMoney(ns, totalIncome, 2) + "/s")
+                React.createElement("span", { style: { color: "#ffaa00", fontWeight: "bold" } }, "$" + ns.formatNumber(totalIncome, 2) + "/s")
             ),
 
             // Money on hand
             React.createElement("div", { style: { marginTop: "8px" } },
                 React.createElement("span", { style: { color: "#ffaa00" } }, "Balance: "),
-                React.createElement("span", { style: { color: "#00ff00", fontWeight: "bold" } }, formatMoney(ns, money, 2))
+                React.createElement("span", { style: { color: "#00ff00", fontWeight: "bold" } }, "$" + ns.formatNumber(money, 2))
             ),
 
             // Programs section header
@@ -299,7 +299,7 @@ export async function main(ns) {
                                 color: money >= torCost ? "#00ff00" :
                                        money >= torCost * 0.75 ? "#ffff00" : "#ff0000"
                             }
-                        }, formatMoney(ns, torCost, 0))
+                        }, "$" + ns.formatNumber(torCost, 0))
                     )
                 ),
                 nextProgram ? React.createElement("div", { style: { fontSize: "12px" } },
@@ -311,7 +311,7 @@ export async function main(ns) {
                             color: money >= nextProgramCost ? "#00ff00" :
                                    money >= nextProgramCost * 0.75 ? "#ffff00" : "#ff0000"
                         }
-                    }, `${formatMoney(ns, nextProgramCost, 0)}`),
+                    }, `$${ns.formatNumber(nextProgramCost, 0)}`),
                     !canCreate && nextCreateLevel > 0 ? React.createElement("span", {
                         style: { color: "#ff6600", marginLeft: "4px" }
                     }, `(lvl ${nextCreateLevel})`) : null
@@ -347,7 +347,7 @@ export async function main(ns) {
                         }, `(${serversMaxed} maxed)`) : null
                     ),
                     serversTotalRam > 0 ? React.createElement("div", { style: { fontSize: "12px", color: "#999" } },
-                        `Total RAM: ${serversTotalRam}GB`
+                        `Total RAM: ${formatRam(serversTotalRam)}`
                     ) : null
                 )
             ) : null,
@@ -409,7 +409,7 @@ export async function main(ns) {
                     canAffordHomeUpgrade ? "💾 Home Upgrade Ready: " : "💾 Save for Home: "
                 ),
                 React.createElement("span", { style: { color: "#999" } },
-                    `${homeMaxRam * 2}GB (${formatMoney(ns, homeUpgradeCost, 0)})`
+                    `${homeMaxRam * 2}GB ($${ns.formatNumber(homeUpgradeCost, 0)})`
                 )
             ) : null,
 
@@ -427,6 +427,12 @@ export async function main(ns) {
         );
 
         ns.printRaw(ui);
+        } catch (e) {
+            // Log error but keep running
+            ns.print(`ERROR: ${e.message}`);
+            ns.print(`Stack: ${e.stack}`);
+        }
+
         await ns.sleep(1000);
     }
 }

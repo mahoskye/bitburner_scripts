@@ -23,7 +23,7 @@
 
 import { disableCommonLogs } from '/lib/misc-utils.js';
 import { writePort } from '/lib/port-utils.js';
-import { scanAllServers } from '/lib/server-utils.js';
+import { scanAllServers, getNextRamUpgrade } from '/lib/server-utils.js';
 import { MONEY } from '/config/money.js';
 import { PORTS } from '/config/ports.js';
 import { SCRIPTS } from '/config/paths.js';
@@ -71,17 +71,6 @@ export async function main(ns) {
      */
     function getServerName(index) {
         return `${CONFIG.SERVER_PREFIX}${index.toString().padStart(4, '0')}`;
-    }
-
-    /**
-     * Get next RAM upgrade amount
-     */
-    function getNextRamUpgrade(currentRam) {
-        let nextRam = CONFIG.MIN_RAM;
-        while (nextRam <= currentRam) {
-            nextRam *= 2;
-        }
-        return Math.min(nextRam, maxRam);
     }
 
     /**
@@ -238,7 +227,7 @@ export async function main(ns) {
             const serverToUpgrade = servers.find(s => s.ram < maxRam);
 
             if (serverToUpgrade) {
-                const nextRam = getNextRamUpgrade(serverToUpgrade.ram);
+                const nextRam = getNextRamUpgrade(ns, serverToUpgrade.ram);
                 const cost = ns.getPurchasedServerCost(nextRam);
 
                 ns.print(`Attempting to upgrade ${serverToUpgrade.hostname} from ${serverToUpgrade.ram}GB to ${nextRam}GB (cost: ${cost})`);

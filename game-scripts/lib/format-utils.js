@@ -1,54 +1,28 @@
 /**
  * Formatting Utilities
- * Functions for formatting numbers, money, and time for display
+ * Pure functions for formatting numbers, RAM, time, and percentages
+ *
+ * Note: For money/number formatting, use ns.formatNumber() directly
  */
 
 /**
- * Formats money with appropriate suffix (k, M, B, T)
+ * Formats a number with comma separators
  *
- * Purpose: Human-readable money display in logs and UI
- * Used by: port-monitor.js, tor-manager.js (3 files)
+ * Purpose: Make large numbers more readable (e.g., 167371 -> 167,371)
+ * Used by: Status displays for counts, threads, etc.
  *
- * @param {NS} ns - NetScript object
- * @param {number} amount - Money amount
- * @param {number} maxFractionalDigits - Maximum decimal places (default: 2)
- * @returns {string} Formatted money string with $
- *
- * @example
- * formatMoney(ns, 1234567);
- * // Returns: "$1.23m"
- *
- * formatMoney(ns, 999);
- * // Returns: "$999.00"
- *
- * formatMoney(ns, 1500000000);
- * // Returns: "$1.50b"
- */
-export function formatMoney(ns, amount, maxFractionalDigits = 2) {
-    // Use built-in NetScript formatter
-    return "$" + ns.formatNumber(amount, maxFractionalDigits);
-}
-
-/**
- * Formats a large number with appropriate suffix
- *
- * Purpose: Generic number formatting for non-money values
- * Used by: Displaying stats, counts, etc.
- *
- * @param {NS} ns - NetScript object
  * @param {number} value - Number to format
- * @param {number} maxFractionalDigits - Maximum decimal places (default: 2)
- * @returns {string} Formatted number string
+ * @returns {string} Formatted number with commas
  *
  * @example
- * formatNumber(ns, 1234567);
- * // Returns: "1.23m"
+ * formatWithCommas(167371);
+ * // Returns: "167,371"
  *
- * formatNumber(ns, 50000);
- * // Returns: "50.00k"
+ * formatWithCommas(1234567);
+ * // Returns: "1,234,567"
  */
-export function formatNumber(ns, value, maxFractionalDigits = 2) {
-    return ns.formatNumber(value, maxFractionalDigits);
+export function formatWithCommas(value) {
+    return value.toLocaleString('en-US');
 }
 
 /**
