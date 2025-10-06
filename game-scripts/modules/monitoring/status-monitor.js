@@ -56,6 +56,7 @@ export async function main(ns) {
         const serverData = readPort(ns, PORTS.SERVERS, null);
         const contractData = readPort(ns, PORTS.CONTRACTS, null);
         const goData = readPort(ns, PORTS.GO_PLAYER, null);
+        const stockData = readPort(ns, PORTS.STOCK_MARKET, null);
 
         // Load manager deployment info for server hostnames
         const managerDeployments = loadManagerDeployments(ns);
@@ -64,6 +65,7 @@ export async function main(ns) {
         const serversServer = managerDeployments.servers?.server || "N/A";
         const contractsServer = managerDeployments.contracts?.server || "N/A";
         const goServer = managerDeployments.go?.server || "N/A";
+        const stocksServer = managerDeployments.stocks?.server || "N/A";
 
         // Parse status if available
         let hackLevel = ns.getHackingLevel();
@@ -181,6 +183,26 @@ export async function main(ns) {
             try {
                 const go = JSON.parse(goData);
                 goActive = go.active || false;
+            } catch (e) {
+                // Invalid JSON, use defaults
+            }
+        }
+
+        // Parse stock market data if available
+        let stockActive = false;
+        let stockPortfolioValue = 0;
+        let stockPositions = 0;
+        let stockTotalProfit = 0;
+        let stockHas4S = false;
+
+        if (stockData) {
+            try {
+                const stocks = JSON.parse(stockData);
+                stockActive = stocks.active || false;
+                stockPortfolioValue = stocks.portfolioValue || 0;
+                stockPositions = stocks.positions || 0;
+                stockTotalProfit = stocks.totalProfit || 0;
+                stockHas4S = stocks.has4SData || false;
             } catch (e) {
                 // Invalid JSON, use defaults
             }
@@ -482,6 +504,46 @@ export async function main(ns) {
                     React.createElement("div", { style: { marginBottom: "3px" } },
                         React.createElement("span", { style: { color: "#00ff00" } }, "Active "),
                         React.createElement("span", { style: { color: "#999", fontSize: "12px" } }, "(playing matches)")
+                    )
+                )
+            ) : null,
+
+            // Stock Market section
+            stockActive ? React.createElement("div", null,
+                // Stock section header
+                React.createElement("div", {
+                    style: {
+                        fontSize: "14px",
+                        fontWeight: "bold",
+                        color: "#00ddff",
+                        borderBottom: "1px solid #00ddff",
+                        paddingBottom: "2px",
+                        marginBottom: "4px",
+                        marginTop: "8px"
+                    }
+                }, `📈 STOCKS (${stocksServer})`),
+
+                React.createElement("div", { style: { marginLeft: "10px" } },
+                    React.createElement("div", { style: { marginBottom: "3px" } },
+                        React.createElement("span", { style: { color: "#ffaa00" } }, "Portfolio: "),
+                        React.createElement("span", { style: { color: "#00ff00", fontWeight: "bold" } },
+                            `$${ns.formatNumber(stockPortfolioValue, 2)}`
+                        ),
+                        React.createElement("span", { style: { color: "#999", fontSize: "12px", marginLeft: "8px" } },
+                            `(${stockPositions} positions)`
+                        )
+                    ),
+                    stockTotalProfit !== 0 ? React.createElement("div", { style: { fontSize: "12px", marginTop: "3px" } },
+                        React.createElement("span", { style: { color: "#aaa" } }, "Profit: "),
+                        React.createElement("span", {
+                            style: {
+                                color: stockTotalProfit > 0 ? "#00ff00" : "#ff6666",
+                                fontWeight: "bold"
+                            }
+                        }, `$${ns.formatNumber(stockTotalProfit, 2)}`)
+                    ) : null,
+                    React.createElement("div", { style: { fontSize: "12px", color: "#666", marginTop: "3px" } },
+                        stockHas4S ? "4S Data: Enabled" : "4S Data: Disabled"
                     )
                 )
             ) : null,

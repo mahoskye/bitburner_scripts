@@ -13,11 +13,12 @@ export const PORTS = {
   SERVERS: 7,               // Purchased server status
   CONTRACTS: 8,             // Coding contract solver status
   GO_PLAYER: 9,             // Go game player status
+  STOCK_MARKET: 10,         // Stock market trading status
 
   RANGE_MIN: 1,             // Valid NetScript port range minimum
   RANGE_MAX: 20,            // Valid NetScript port range maximum
 
-  DEFAULT_MONITOR: [1, 2, 5, 6, 7, 8, 9],  // Default ports to monitor in HUD
+  DEFAULT_MONITOR: [1, 2, 5, 6, 7, 8, 9, 10],  // Default ports to monitor in HUD
 };
 
 export const PORT_NO_DATA = 'NULL PORT DATA';

@@ -39,6 +39,7 @@ export async function main(ns) {
     const SERVER_SCRIPT = SCRIPTS.SERVER_MANAGER;
     const CONTRACT_SCRIPT = SCRIPTS.CONTRACT_SOLVER;
     const GO_SCRIPT = SCRIPTS.GO_MANAGER;
+    const STOCK_SCRIPT = SCRIPTS.STOCK_TRADER;
     const currentServer = ns.getHostname();
     let lastDiscovery = 0;
     let currentTarget = null;
@@ -259,7 +260,8 @@ export async function main(ns) {
             { name: "programs", script: PROGRAM_SCRIPT },
             { name: "servers", script: SERVER_SCRIPT },
             { name: "contracts", script: CONTRACT_SCRIPT },
-            { name: "go", script: GO_SCRIPT }
+            { name: "go", script: GO_SCRIPT },
+            { name: "stocks", script: STOCK_SCRIPT }
         ];
 
         for (const manager of managersToDeploy) {

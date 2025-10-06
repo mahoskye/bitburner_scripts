@@ -21,4 +21,5 @@ export const SCRIPTS = {
   SERVER_MANAGER: '/modules/resources/server-manager.js',
   CONTRACT_SOLVER: '/modules/utilities/contract-solver.js',
   GO_MANAGER: '/sf-modules/go-manager.js',
+  STOCK_TRADER: '/modules/resources/stock-trader.js',
 };
