@@ -113,6 +113,8 @@ export async function main(ns) {
         let canCreate = false;
         let hasTor = false;
         let torCost = 200000;
+        let hasFormulas = false;
+        let formulasCost = 5000000000;
 
         if (programData) {
             try {
@@ -125,6 +127,8 @@ export async function main(ns) {
                 canCreate = programs.canCreate || false;
                 hasTor = programs.hasTor || false;
                 torCost = programs.torCost || 200000;
+                hasFormulas = programs.hasFormulas || false;
+                formulasCost = programs.formulasCost || 5000000000;
             } catch (e) {
                 // Invalid JSON, use defaults
             }
@@ -190,6 +194,8 @@ export async function main(ns) {
 
         // Parse stock market data if available
         let stockActive = false;
+        let stockDisabled = false;
+        let stockDisabledReason = "";
         let stockPortfolioValue = 0;
         let stockPositions = 0;
         let stockTotalProfit = 0;
@@ -199,6 +205,8 @@ export async function main(ns) {
             try {
                 const stocks = JSON.parse(stockData);
                 stockActive = stocks.active || false;
+                stockDisabled = stocks.disabled || false;
+                stockDisabledReason = stocks.reason || "";
                 stockPortfolioValue = stocks.portfolioValue || 0;
                 stockPositions = stocks.positions || 0;
                 stockTotalProfit = stocks.totalProfit || 0;
@@ -388,7 +396,17 @@ export async function main(ns) {
                     !canCreate && nextCreateLevel > 0 ? React.createElement("span", {
                         style: { color: "#ff6600", marginLeft: "4px" }
                     }, `(lvl ${nextCreateLevel})`) : null
-                ) : null
+                ) : null,
+                React.createElement("div", { style: { fontSize: "12px", marginTop: "3px" } },
+                    React.createElement("span", { style: { color: "#aaa" } }, "Formulas: "),
+                    hasFormulas ? React.createElement("span", { style: { color: "#00ff00", fontWeight: "bold" } }, "✓") :
+                    React.createElement("span", {
+                        style: {
+                            color: money >= formulasCost ? "#00ff00" :
+                                   money >= formulasCost * 0.75 ? "#ffff00" : "#ff0000"
+                        }
+                    }, `$${ns.formatNumber(formulasCost, 2)}`)
+                )
             ),
 
             // Servers section
@@ -509,14 +527,14 @@ export async function main(ns) {
             ) : null,
 
             // Stock Market section
-            stockActive ? React.createElement("div", null,
+            (stockActive || stockDisabled) ? React.createElement("div", null,
                 // Stock section header
                 React.createElement("div", {
                     style: {
                         fontSize: "14px",
                         fontWeight: "bold",
-                        color: "#00ddff",
-                        borderBottom: "1px solid #00ddff",
+                        color: stockDisabled ? "#666" : "#00ddff",
+                        borderBottom: stockDisabled ? "1px solid #666" : "1px solid #00ddff",
                         paddingBottom: "2px",
                         marginBottom: "4px",
                         marginTop: "8px"
@@ -524,26 +542,30 @@ export async function main(ns) {
                 }, `📈 STOCKS (${stocksServer})`),
 
                 React.createElement("div", { style: { marginLeft: "10px" } },
-                    React.createElement("div", { style: { marginBottom: "3px" } },
-                        React.createElement("span", { style: { color: "#ffaa00" } }, "Portfolio: "),
-                        React.createElement("span", { style: { color: "#00ff00", fontWeight: "bold" } },
-                            `$${ns.formatNumber(stockPortfolioValue, 2)}`
+                    stockDisabled ? React.createElement("div", { style: { color: "#ff9900", fontSize: "12px" } },
+                        stockDisabledReason
+                    ) : React.createElement("div", null,
+                        React.createElement("div", { style: { marginBottom: "3px" } },
+                            React.createElement("span", { style: { color: "#ffaa00" } }, "Portfolio: "),
+                            React.createElement("span", { style: { color: "#00ff00", fontWeight: "bold" } },
+                                `$${ns.formatNumber(stockPortfolioValue, 2)}`
+                            ),
+                            React.createElement("span", { style: { color: "#999", fontSize: "12px", marginLeft: "8px" } },
+                                `(${stockPositions} positions)`
+                            )
                         ),
-                        React.createElement("span", { style: { color: "#999", fontSize: "12px", marginLeft: "8px" } },
-                            `(${stockPositions} positions)`
+                        stockTotalProfit !== 0 ? React.createElement("div", { style: { fontSize: "12px", marginTop: "3px" } },
+                            React.createElement("span", { style: { color: "#aaa" } }, "Profit: "),
+                            React.createElement("span", {
+                                style: {
+                                    color: stockTotalProfit > 0 ? "#00ff00" : "#ff6666",
+                                    fontWeight: "bold"
+                                }
+                            }, `$${ns.formatNumber(stockTotalProfit, 2)}`)
+                        ) : null,
+                        React.createElement("div", { style: { fontSize: "12px", color: "#666", marginTop: "3px" } },
+                            stockHas4S ? "4S Data: Enabled" : "4S Data: Disabled"
                         )
-                    ),
-                    stockTotalProfit !== 0 ? React.createElement("div", { style: { fontSize: "12px", marginTop: "3px" } },
-                        React.createElement("span", { style: { color: "#aaa" } }, "Profit: "),
-                        React.createElement("span", {
-                            style: {
-                                color: stockTotalProfit > 0 ? "#00ff00" : "#ff6666",
-                                fontWeight: "bold"
-                            }
-                        }, `$${ns.formatNumber(stockTotalProfit, 2)}`)
-                    ) : null,
-                    React.createElement("div", { style: { fontSize: "12px", color: "#666", marginTop: "3px" } },
-                        stockHas4S ? "4S Data: Enabled" : "4S Data: Disabled"
                     )
                 )
             ) : null,

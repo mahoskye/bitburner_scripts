@@ -11,9 +11,10 @@
  * RAM Cost: ~6-8GB (TIX API functions)
  *
  * REQUIREMENTS:
- *   - $200k for WSE account
- *   - $25m for TIX API access
- *   - $5b for 4S Market Data (optional, for forecast)
+ *   - $25m for WSE account
+ *   - $5b for TIX API access
+ *   - $1b for 4S Market Data (view forecasts)
+ *   - $25b for 4S Market Data API (optional, programmatic access)
  *
  * USAGE:
  *   run modules/resources/stock-trader.js
@@ -22,6 +23,7 @@
 import { disableCommonLogs } from '/lib/misc-utils.js';
 import { writePort } from '/lib/port-utils.js';
 import { PORTS } from '/config/ports.js';
+import { STOCK_MARKET_COSTS } from '/config/money.js';
 
 export async function main(ns) {
     // ============================================================================
@@ -46,18 +48,22 @@ export async function main(ns) {
 
     // Check if we have stock market access
     if (!ns.stock.hasTIXAPIAccess()) {
-        ns.tprint("ERROR: No TIX API access ($25m required)");
-        ns.tprint("Stock trader will not start");
+        ns.tprint(`Stock trader waiting for TIX API access ($${ns.formatNumber(STOCK_MARKET_COSTS.TIX_API, 2)} required)`);
 
-        const disabledStatus = {
-            active: false,
-            disabled: true,
-            reason: "No TIX API access",
-            requiredCost: 25000000,
-            lastUpdate: Date.now()
-        };
-        writePort(ns, PORTS.STOCK_MARKET, JSON.stringify(disabledStatus));
-        return;
+        // Wait until TIX API is available
+        while (!ns.stock.hasTIXAPIAccess()) {
+            const disabledStatus = {
+                active: false,
+                disabled: true,
+                reason: "No TIX API access",
+                requiredCost: STOCK_MARKET_COSTS.TIX_API,
+                lastUpdate: Date.now()
+            };
+            writePort(ns, PORTS.STOCK_MARKET, JSON.stringify(disabledStatus));
+            await ns.sleep(60000); // Check every minute
+        }
+
+        ns.tprint("TIX API access acquired - starting stock trader");
     }
 
     const has4SData = ns.stock.has4SDataTIXAPI();

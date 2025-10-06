@@ -36,6 +36,11 @@ export async function main(ns) {
             PROGRAMS.SQL_INJECT,   // Port opener #5 (endgame)
         ],
 
+        // Utility programs (tracked separately)
+        UTILITIES: [
+            PROGRAMS.FORMULAS,     // $5b - Enables HWGW batching
+        ],
+
         // Loop timing
         UPDATE_INTERVAL: 10000, // Check every 10 seconds
     };
@@ -72,10 +77,13 @@ export async function main(ns) {
         const totalCount = CONFIG.PORT_OPENERS.length;
         const missing = getMissingPrograms();
 
+        // Check utility programs
+        const hasFormulas = hasProgram(PROGRAMS.FORMULAS);
+
         // Check TOR status
         const hasTor = ns.hasTorRouter();
 
-        // Check if all acquired
+        // Check if all port openers acquired
         if (missing.length === 0) {
             // Only announce once
             if (!hasAnnounced) {
@@ -83,18 +91,21 @@ export async function main(ns) {
                 hasAnnounced = true;
             }
 
-            // Write complete status
+            // Write complete status (but check for utilities)
             const finalStatus = {
                 programs: acquiredCount,
                 total: totalCount,
                 missing: [],
                 hasTor: hasTor,
                 torCost: TOR_COSTS.ROUTER,
-                complete: true
+                complete: true,
+                hasFormulas: hasFormulas,
+                formulasCost: TOR_COSTS.PROGRAMS[PROGRAMS.FORMULAS],
+                nextUtility: hasFormulas ? null : PROGRAMS.FORMULAS
             };
             writePort(ns, PORTS.PROGRAMS, JSON.stringify(finalStatus));
 
-            ns.print("All programs acquired - monitoring for changes");
+            ns.print(`All port openers acquired - Formulas: ${hasFormulas ? 'YES' : 'NO'}`);
             await ns.sleep(CONFIG.UPDATE_INTERVAL);
             continue;
         }
@@ -126,7 +137,10 @@ export async function main(ns) {
             hasTor: hasTor,
             torCost: TOR_COSTS.ROUTER,
             message: statusMessage,
-            complete: false
+            complete: false,
+            hasFormulas: hasFormulas,
+            formulasCost: TOR_COSTS.PROGRAMS[PROGRAMS.FORMULAS],
+            nextUtility: hasFormulas ? null : PROGRAMS.FORMULAS
         };
         writePort(ns, PORTS.PROGRAMS, JSON.stringify(statusData));
 

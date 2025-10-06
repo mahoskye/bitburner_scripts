@@ -23,6 +23,7 @@ export const TOR_COSTS = {
     'ServerProfiler.exe': 500000,
     'DeepscanV1.exe': 500000,
     'AutoLink.exe': 1000000,
+    'Formulas.exe': 5000000000,
   },
 };
 
@@ -41,6 +42,7 @@ export const PROGRAMS = {
   SERVER_PROFILER: 'ServerProfiler.exe',
   DEEPSCAN: 'DeepscanV1.exe',
   AUTO_LINK: 'AutoLink.exe',
+  FORMULAS: 'Formulas.exe',
 };
 
 // Hacking level required to create each program
@@ -53,4 +55,11 @@ export const PROGRAM_CREATE_LEVEL = {
   'ServerProfiler.exe': 75,
   'DeepscanV1.exe': 75,
   'AutoLink.exe': 25,
+};
+
+export const STOCK_MARKET_COSTS = {
+  WSE_ACCOUNT: 25000000,           // $25m - Basic access to view stocks
+  TIX_API: 5000000000,             // $5b - API access for trading
+  FOUR_SIGMA_DATA: 1000000000,     // $1b - Market data access
+  FOUR_SIGMA_API: 25000000000,     // $25b - Market data API access
 };
