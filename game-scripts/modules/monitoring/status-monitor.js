@@ -67,6 +67,10 @@ export async function main(ns) {
         const goServer = managerDeployments.go?.server || "N/A";
         const stocksServer = managerDeployments.stocks?.server || "N/A";
 
+        // Get command center location
+        const commandCenter = ns.fileExists('/data/command-center.txt') ?
+            ns.read('/data/command-center.txt').trim() : "N/A";
+
         // Parse status if available
         let hackLevel = ns.getHackingLevel();
         let nextDiscovery = "N/A";
@@ -275,6 +279,12 @@ export async function main(ns) {
                         style: { color: "#ffff00", marginLeft: "8px", fontSize: "12px" }
                       }, "⏳ pending switch")
                     : null
+            ),
+
+            // Command Center
+            React.createElement("div", { style: { marginBottom: "4px" } },
+                React.createElement("span", { style: { color: "#ffaa00" } }, "Command Center: "),
+                React.createElement("span", { style: { color: "#00ddff", fontWeight: "bold" } }, commandCenter)
             ),
 
             // Workers
