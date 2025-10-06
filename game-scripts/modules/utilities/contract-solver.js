@@ -176,6 +176,58 @@ export async function main(ns) {
                 solution = solveShortestPathGrid(data);
                 break;
 
+            case "Algorithmic Stock Trader III":
+                solution = solveStockTrader3(data);
+                break;
+
+            case "Algorithmic Stock Trader IV":
+                solution = solveStockTrader4(data);
+                break;
+
+            case "Total Ways to Sum II":
+                solution = solveTotalWaysToSum2(data);
+                break;
+
+            case "Encryption I: Caesar Cipher":
+                solution = solveCaesarCipher(data);
+                break;
+
+            case "Encryption II: Vigenère Cipher":
+                solution = solveVigenereCipher(data);
+                break;
+
+            case "Compression I: RLE Compression":
+                solution = solveRLECompression(data);
+                break;
+
+            case "Compression II: LZ Decompression":
+                solution = solveLZDecompression(data);
+                break;
+
+            case "Compression III: LZ Compression":
+                solution = solveLZCompression(data);
+                break;
+
+            case "HammingCodes: Integer to Encoded Binary":
+                solution = solveHammingEncode(data);
+                break;
+
+            case "HammingCodes: Encoded Binary to Integer":
+                solution = solveHammingDecode(data);
+                break;
+
+            case "Sanitize Parentheses in Expression":
+                solution = solveSanitizeParentheses(data);
+                break;
+
+            case "Find All Valid Math Expressions":
+                solution = solveMathExpressions(data);
+                break;
+
+            case "Proper 2-Coloring of a Graph":
+                solution = solveGraphColoring(data);
+                break;
+
             default:
                 return { success: false, skipped: true, error: `Unsupported: ${contractType}` };
         }
@@ -467,5 +519,424 @@ export async function main(ns) {
         }
 
         return "";
+    }
+
+    function solveStockTrader3(prices) {
+        // Stock Trader III: Max 2 transactions
+        return solveStockTrader4([2, prices]);
+    }
+
+    function solveStockTrader4(data) {
+        // Stock Trader IV: Max k transactions
+        const k = data[0];
+        const prices = data[1];
+        const n = prices.length;
+
+        if (n === 0 || k === 0) return 0;
+
+        // DP approach
+        const dp = (i, j) => {
+            if (j === 0) return 0;
+            if (i >= n) return 0;
+
+            let ans = dp(i + 1, j);
+
+            for (let m = i + 1; m < n; m++) {
+                ans = Math.max(ans, prices[m] - prices[i] + dp(m + 1, j - 1));
+            }
+
+            return ans;
+        };
+
+        return dp(0, k);
+    }
+
+    function solveTotalWaysToSum2(data) {
+        // Total Ways to Sum II: Count ways to sum using given numbers
+        const target = data[0];
+        const parts = data[1];
+        const n = parts.length;
+        const memo = {};
+
+        const dp = (rem, idx) => {
+            if (rem < 0) return 0;
+            if (rem === 0) return 1;
+            const key = `${rem},${idx}`;
+            if (key in memo) return memo[key];
+
+            let ans = 0;
+            for (let i = idx; i < n; i++) {
+                ans += dp(rem - parts[i], i);
+            }
+
+            memo[key] = ans;
+            return ans;
+        };
+
+        return dp(target, 0);
+    }
+
+    function solveCaesarCipher(data) {
+        // Caesar Cipher: Decrypt by shifting backwards
+        const plaintext = data[0];
+        const shift = data[1];
+        let result = [];
+
+        for (const chr of plaintext) {
+            if (chr === ' ') {
+                result.push(' ');
+                continue;
+            }
+            const ord = chr.charCodeAt(0) - 'A'.charCodeAt(0);
+            const shifted = (((ord - shift) % 26) + 26) % 26;
+            result.push(String.fromCharCode('A'.charCodeAt(0) + shifted));
+        }
+
+        return result.join("");
+    }
+
+    function solveVigenereCipher(data) {
+        // Vigenère Cipher: Encrypt using keyword
+        const plaintext = data[0];
+        const keyword = data[1];
+        const N = plaintext.length;
+        const M = keyword.length;
+        let result = "";
+
+        for (let i = 0; i < N; i++) {
+            const chr1 = plaintext.charAt(i);
+            const chr2 = keyword.charAt(i % M);
+            const row = chr1.charCodeAt(0) - 'A'.charCodeAt(0);
+            const col = chr2.charCodeAt(0) - 'A'.charCodeAt(0);
+            result += String.fromCharCode((row + col) % 26 + 'A'.charCodeAt(0));
+        }
+
+        return result;
+    }
+
+    function solveRLECompression(data) {
+        // RLE Compression: Run-length encoding
+        const input = data;
+        let result = [];
+        let len = 0;
+        let current = '';
+
+        for (const chr of input) {
+            if (chr !== current) {
+                if (len > 0) {
+                    result.push(len);
+                    result.push(current);
+                }
+                len = 0;
+                current = '';
+            }
+
+            len++;
+            current = chr;
+
+            if (len === 9) {
+                result.push(len);
+                result.push(current);
+                len = 0;
+                current = '';
+            }
+        }
+
+        if (len > 0) {
+            result.push(len);
+            result.push(current);
+        }
+
+        return result.join("");
+    }
+
+    function solveLZDecompression(data) {
+        // LZ Decompression
+        let q = data.split("");
+        let type = 1;
+        let result = "";
+
+        while (q.length > 0) {
+            let l = parseInt(q.shift());
+            if (l === 0) {
+                type = (type === 1) ? 2 : 1;
+                continue;
+            }
+
+            if (type === 1) {
+                for (let i = 0; i < l; i++) result += q.shift();
+                type = 2;
+            } else {
+                let offset = parseInt(q.shift());
+                for (let i = 0; i < l; i++) result += result.charAt(result.length - offset);
+                type = 1;
+            }
+        }
+
+        return result;
+    }
+
+    function solveLZCompression(data) {
+        // LZ Compression
+        const input = data;
+        const n = input.length;
+        const memo = {};
+
+        const compress = (idx, type, skip) => {
+            if (idx >= n) return "";
+
+            const key = `${idx},${type},${skip}`;
+            if (key in memo) return memo[key];
+
+            let ans = input + input;
+            let candidate;
+
+            if (type === 1) {
+                if (!skip) {
+                    candidate = "0" + compress(idx, 2, true);
+                    if (candidate.length < ans.length) ans = candidate;
+                }
+                for (let i = 1; i <= 9; i++) {
+                    if (idx + i > n) break;
+                    candidate = i.toString() + input.substring(idx, idx + i) + compress(idx + i, 2, false);
+                    if (candidate.length < ans.length) ans = candidate;
+                }
+            } else {
+                if (!skip) {
+                    candidate = "0" + compress(idx, 1, true);
+                    if (candidate.length < ans.length) ans = candidate;
+                }
+
+                for (let i = 9; i >= 1; i--) {
+                    if (idx + i > n) continue;
+                    const substr = input.substring(idx, idx + i);
+                    for (let j = Math.min(9, idx); j >= 1; j--) {
+                        const substr1 = input.substring(idx - j, idx + i - j);
+                        if (substr === substr1) {
+                            candidate = i.toString() + j.toString() + compress(idx + i, 1, false);
+                            if (candidate.length < ans.length) ans = candidate;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            memo[key] = ans;
+            return ans;
+        };
+
+        return compress(0, 1, true);
+    }
+
+    function solveHammingEncode(data) {
+        // Hamming Code: Integer to Encoded Binary
+        const x = data;
+        let q = x.toString(2).split("");
+        let out = [-1];
+        let idx = 1;
+
+        while (q.length > 0) {
+            if ((idx & (idx - 1)) === 0) {
+                out.push(-1);
+            } else {
+                out.push(q.shift());
+            }
+            idx++;
+        }
+
+        for (let i = out.length - 1; i >= 1; i--) {
+            if ((i & (i - 1)) > 0) continue;
+
+            let parity = 0;
+            for (let j = i + 1; j < out.length; j++) {
+                if ((j & i) === 0) continue;
+                if (out[j] === '1') parity++;
+                parity %= 2;
+            }
+            out[i] = parity ? '1' : '0';
+        }
+
+        let parity = 0;
+        for (let i = 1; i < out.length; i++) {
+            if (out[i] === '1') parity++;
+            parity %= 2;
+        }
+        out[0] = parity ? 1 : 0;
+
+        return out.join("");
+    }
+
+    function solveHammingDecode(data) {
+        // Hamming Code: Encoded Binary to Integer
+        const input = [...data];
+        const n = input.length;
+
+        const decode = (x) => {
+            const len = x.length;
+            let result = [];
+            for (let i = len - 1; i > 0; i--) {
+                if ((i & (i - 1)) === 0) continue;
+                result.unshift(x[i]);
+            }
+            return Number.parseInt(result.join(""), 2);
+        };
+
+        const check = (x) => {
+            const len = x.length;
+            let checkBit = 1;
+            while (checkBit < len) {
+                let parity = 0;
+                for (let i = 0; i < len; i++) {
+                    if ((i & checkBit) === 0) continue;
+                    if (x[i] === '1') parity = 1 - parity;
+                }
+                if (parity === 1) return false;
+                checkBit *= 2;
+            }
+            let parity = 0;
+            for (let i = 1; i < len; i++) {
+                if (x[i] === '1') parity = 1 - parity;
+            }
+            return x[0] === (parity ? '0' : '1');
+        };
+
+        if (check(input)) return decode(input);
+
+        let x = input;
+        let wrongs = [];
+        for (let i = 0; i < n; i++) wrongs.push(0);
+
+        let checkBit = 1;
+        while (checkBit < n) {
+            let parity = 0;
+            for (let i = 0; i < n; i++) {
+                if ((i & checkBit) === 0) continue;
+                if (x[i] === '1') parity = 1 - parity;
+            }
+            if (parity === 1) wrongs[checkBit] = 1;
+            checkBit *= 2;
+        }
+
+        let wrongIdx = 0;
+        for (let i = 0; i < n; i++) {
+            if (wrongs[i] === 1) wrongIdx += i;
+        }
+
+        x[wrongIdx] = (x[wrongIdx] === '0') ? '1' : '0';
+        return decode(x);
+    }
+
+    function solveSanitizeParentheses(data) {
+        // Sanitize Parentheses in Expression
+        const input = data;
+        let q = new Set([input]);
+        let ans = new Set();
+
+        const isValid = (s) => {
+            let ct = 0;
+            for (const chr of s) {
+                if (chr === '(') ct++;
+                if (chr === ')') ct--;
+                if (ct < 0) return false;
+            }
+            return ct === 0;
+        };
+
+        const getCandidates = (s) => {
+            const n = s.length;
+            let ret = new Set();
+            for (let i = 0; i < n; i++) {
+                if (s.charAt(i) === '(' || s.charAt(i) === ')') {
+                    ret.add(s.substring(0, i) + s.substring(i + 1, n));
+                }
+            }
+            return [...ret];
+        };
+
+        while (q.size > 0) {
+            let next = new Set();
+            for (const candidate of q) {
+                if (isValid(candidate)) {
+                    ans.add(candidate);
+                } else {
+                    getCandidates(candidate).forEach((x) => next.add(x));
+                }
+            }
+            if (ans.size > 0) break;
+            q = next;
+        }
+
+        return [...ans];
+    }
+
+    function solveMathExpressions(data) {
+        // Find All Valid Math Expressions
+        const digits = data[0].split('');
+        const target = data[1];
+        const n = digits.length;
+        let ans = [];
+
+        const bf = (idx, stack) => {
+            let digit = digits[idx];
+            let last = stack[stack.length - 1];
+            last.push(digit);
+
+            if (idx === n - 1) {
+                let res = stack.map((x) => x.join("")).join("");
+                if (eval(res) === target) {
+                    ans.push(res);
+                }
+                return;
+            }
+
+            for (const op of ['+', '-', '*']) {
+                stack.push([op]);
+                bf(idx + 1, stack);
+                stack.pop();
+            }
+
+            bf(idx + 1, stack);
+        };
+
+        bf(0, [[]]);
+        return ans;
+    }
+
+    function solveGraphColoring(data) {
+        // Proper 2-Coloring of a Graph
+        const n = data[0];
+        const edges = data[1];
+        const graph = {};
+
+        for (let i = 0; i < n; i++) {
+            graph[i] = [];
+        }
+        for (const edge of edges) {
+            let i = edge[0], j = edge[1];
+            graph[i].push(j);
+            graph[j].push(i);
+        }
+
+        let colors = [];
+        for (let i = 0; i < n; i++) {
+            colors.push(-1);
+        }
+
+        let q = [[0, 0]];
+        while (q.length > 0) {
+            let x = q.shift();
+            let node = x[0], color = x[1];
+            if (colors[node] !== -1) {
+                if (colors[node] === color) continue;
+                return [];
+            }
+
+            colors[node] = color;
+            graph[node].forEach((neighbor) => {
+                q.push([neighbor, 1 - color]);
+            });
+        }
+
+        return colors;
     }
 }
