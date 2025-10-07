@@ -44,19 +44,29 @@ export async function main(ns) {
     // If port is empty, check for saved target file
     if (initialTarget === PORT_NO_DATA) {
         const savedTargetFile = '/data/last-target.txt';
+
         if (ns.fileExists(savedTargetFile)) {
             try {
                 const savedData = ns.read(savedTargetFile);
                 // Write it to port so other workers can see it
                 ns.writePort(portNumber, savedData);
                 initialTarget = savedData;
-                ns.tprint(`Restored saved target from ${savedTargetFile}`);
+
+                // Parse to show the actual target name
+                try {
+                    const parsed = JSON.parse(savedData);
+                    ns.tprint(`Restored saved target: ${parsed.target}`);
+                } catch {
+                    ns.tprint(`Restored saved target from file`);
+                }
             } catch (e) {
-                ns.tprint(`Failed to restore saved target: ${e.message}`);
+                ns.tprint(`ERROR: Failed to restore saved target: ${e.message}`);
                 initialTarget = DEFAULT_TARGET;
             }
         } else {
+            // No saved target - this is expected on first run or in offline-only mode
             initialTarget = DEFAULT_TARGET;
+            ns.tprint(`No saved target found, using default: ${DEFAULT_TARGET}`);
         }
     }
 

@@ -67,15 +67,25 @@ export async function main(ns) {
                 await ns.scp(script, server, "home");
 
                 const maxRam = ns.getServerMaxRam(server);
+                const usedRam = ns.getServerUsedRam(server);
+                const availableRam = maxRam - usedRam;
                 const scriptRam = ns.getScriptRam(script);
 
-                if (scriptRam === 0) continue;
+                if (scriptRam === 0) {
+                    ns.tprint(`ERROR: Script ${script} not found or has 0 RAM cost`);
+                    continue;
+                }
 
-                const threads = Math.floor(maxRam / scriptRam);
+                const threads = Math.floor(availableRam / scriptRam);
                 if (threads > 0) {
                     const pid = ns.exec(script, server, threads, 1); // Port 1 for target
                     if (pid > 0) {
                         workersDeployed++;
+                        if (server === "home") {
+                            ns.tprint(`✓ Deployed home-worker to home with ${threads} threads`);
+                        }
+                    } else {
+                        ns.tprint(`ERROR: Failed to execute ${script} on ${server} (${threads} threads, ${maxRam}GB RAM)`);
                     }
                 }
             }

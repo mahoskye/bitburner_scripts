@@ -63,6 +63,9 @@ export async function main(ns) {
             // Restore to port so workers pick it up immediately
             writePort(ns, PORTS.HACK_TARGET, savedTargetData);
 
+            // Copy file to home so home-worker can restore it after reload
+            await ns.scp(FILES.LAST_TARGET, "home", currentServer);
+
             ns.tprint(`Restored last target: ${currentTarget}`);
         } catch (e) {
             ns.print(`Failed to restore last target: ${e.message}`);
@@ -184,6 +187,9 @@ export async function main(ns) {
                 // Save target to file for persistence across restarts
                 await ns.write(FILES.LAST_TARGET, JSON.stringify(targetData), "w");
 
+                // Copy file to home so home-worker can restore it after reload
+                await ns.scp(FILES.LAST_TARGET, "home", currentServer);
+
                 currentTarget = bestTarget;
                 currentTargetScore = bestTargetScore;
             }
@@ -197,13 +203,50 @@ export async function main(ns) {
                 const goManagerServer = managerDeployments.go?.server;
 
                 for (const hostname of accessibleServers) {
-                // Skip home - reserved for managers
-                if (hostname === "home") {
+                // Skip command center - reserved for this script
+                if (hostname === currentServer) {
                     continue;
                 }
 
-                // Skip command center - reserved for this script
-                if (hostname === currentServer) {
+                // Handle home specially: only deploy if 64GB+, use half RAM
+                if (hostname === "home") {
+                    const homeMaxRam = ns.getServerMaxRam("home");
+                    if (homeMaxRam >= 64) {
+                        // Deploy home-worker with half RAM
+                        const homeWorkerScript = SCRIPTS.HOME_WORKER;
+                        await ns.scp(homeWorkerScript, "home", "home");
+
+                        const usedRam = ns.getServerUsedRam("home");
+                        const availableForWorker = Math.floor(homeMaxRam / 2) - usedRam;
+                        const scriptRam = ns.getScriptRam(homeWorkerScript);
+                        const homeThreads = Math.max(0, Math.floor(availableForWorker / scriptRam));
+
+                        const processes = ns.ps("home");
+                        const runningHomeWorker = processes.find(p => p.filename === homeWorkerScript);
+
+                        let needsDeploy = false;
+                        let reason = "";
+
+                        if (!runningHomeWorker) {
+                            needsDeploy = true;
+                            reason = "not running";
+                        } else if (runningHomeWorker.threads !== homeThreads && homeThreads > 0) {
+                            needsDeploy = true;
+                            reason = `thread mismatch (${runningHomeWorker.threads} -> ${homeThreads})`;
+                        }
+
+                        if (needsDeploy && homeThreads > 0) {
+                            if (runningHomeWorker) {
+                                ns.scriptKill(homeWorkerScript, "home");
+                            }
+                            const pid = ns.exec(homeWorkerScript, "home", homeThreads, PORTS.HACK_TARGET);
+                            if (pid > 0) {
+                                ns.print(`  Deployed ${homeThreads} threads on home (${reason}, half RAM reserved)`);
+                                deployedCount++;
+                            }
+                        }
+                    }
+                    // Skip normal worker deployment for home
                     continue;
                 }
 
