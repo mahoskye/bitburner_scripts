@@ -192,29 +192,12 @@ export async function main(ns) {
             let deployedCount = 0;
 
             if (needsWorkerUpdate) {
-                // Deploy home-worker to home first (for target restoration)
-                const HOME_WORKER_SCRIPT = SCRIPTS.HOME_WORKER;
-                const homeThreads = calculateMaxThreads(ns, HOME_WORKER_SCRIPT, "home", 0);
-                if (homeThreads > 0) {
-                    const homeProcesses = ns.ps("home");
-                    const runningHomeWorker = homeProcesses.find(p => p.filename === HOME_WORKER_SCRIPT);
-
-                    if (!runningHomeWorker || runningHomeWorker.threads !== homeThreads) {
-                        ns.scriptKill(HOME_WORKER_SCRIPT, "home");
-                        const pid = ns.exec(HOME_WORKER_SCRIPT, "home", homeThreads, PORTS.HACK_TARGET);
-                        if (pid > 0) {
-                            ns.print(`  Deployed home-worker with ${homeThreads} threads`);
-                            deployedCount++;
-                        }
-                    }
-                }
-
                 // Get Go manager server (needs exclusive RAM for dynamic temp scripts)
                 const managerDeployments = loadManagerDeployments(ns);
                 const goManagerServer = managerDeployments.go?.server;
 
                 for (const hostname of accessibleServers) {
-                // Skip home - home-worker already deployed above
+                // Skip home - reserved for managers
                 if (hostname === "home") {
                     continue;
                 }
