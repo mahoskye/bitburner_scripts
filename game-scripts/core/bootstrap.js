@@ -143,8 +143,9 @@ export async function main(ns) {
 
     ns.tprint(`Copied ${filesToCopy.length} files to ${commandCenter}`);
 
-    // Kill any existing command server
-    ns.scriptKill(SCRIPTS.COMMAND, commandCenter);
+    // Kill ALL scripts on command center to ensure clean start
+    ns.killall(commandCenter);
+    await ns.sleep(100); // Give it a moment to clean up
 
     // Launch command server
     const pid = ns.exec(SCRIPTS.COMMAND, commandCenter, 1);
