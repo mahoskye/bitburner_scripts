@@ -241,6 +241,8 @@ export async function main(ns) {
             ns.tprint(`SUCCESS: All ${maxNodes} hacknet nodes fully upgraded!`);
             ns.tprint("Hacknet manager entering idle mode.");
             hasAnnouncedCompletion = true;
+            // Extra safety sleep after announcement
+            await ns.sleep(100);
         }
 
         // If all complete, skip processing and just update status
