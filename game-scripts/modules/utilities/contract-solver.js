@@ -184,7 +184,7 @@ export async function main(ns) {
                 break;
 
             case "Algorithmic Stock Trader IV":
-                solution = solveStockTrader4(data);
+                // solution = solveStockTrader4(data); // <-- Bad Guy
                 break;
 
             case "Total Ways to Sum II":
@@ -537,10 +537,24 @@ export async function main(ns) {
 
         if (n === 0 || k === 0) return 0;
 
-        // DP approach
+        // If k >= n/2, unlimited transactions
+        if (k >= Math.floor(n / 2)) {
+            let profit = 0;
+            for (let i = 1; i < n; i++) {
+                profit += Math.max(0, prices[i] - prices[i - 1]);
+            }
+            return profit;
+        }
+
+        // DP with memoization
+        const memo = new Map();
+
         const dp = (i, j) => {
             if (j === 0) return 0;
             if (i >= n) return 0;
+
+            const key = `${i},${j}`;
+            if (memo.has(key)) return memo.get(key);
 
             let ans = dp(i + 1, j);
 
@@ -548,6 +562,7 @@ export async function main(ns) {
                 ans = Math.max(ans, prices[m] - prices[i] + dp(m + 1, j - 1));
             }
 
+            memo.set(key, ans);
             return ans;
         };
 
