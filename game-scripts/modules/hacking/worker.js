@@ -110,6 +110,9 @@ export async function main(ns) {
                 await ns.hack(target);
             }
 
+            // Safety sleep to prevent infinite loops in edge cases
+            await ns.sleep(1);
+
             // Check if target has changed based on switch mode
             const newTargetData = ns.peek(portNumber);
 
