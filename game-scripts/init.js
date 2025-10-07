@@ -56,23 +56,24 @@ export async function main(ns) {
 
             // Deploy workers to all rooted servers
             const workerScript = SCRIPTS.WORKER;
+            const homeWorkerScript = SCRIPTS.HOME_WORKER;
             let workersDeployed = 0;
 
             for (const server of allServers) {
-                if (server === "home") continue;
                 if (!ns.hasRootAccess(server)) continue;
 
-                await ns.scp(workerScript, server, "home");
+                // Use home-worker on home (includes target restoration)
+                const script = server === "home" ? homeWorkerScript : workerScript;
+                await ns.scp(script, server, "home");
 
                 const maxRam = ns.getServerMaxRam(server);
-                const scriptRam = ns.getScriptRam(workerScript);
+                const scriptRam = ns.getScriptRam(script);
 
                 if (scriptRam === 0) continue;
 
                 const threads = Math.floor(maxRam / scriptRam);
                 if (threads > 0) {
-                    // Use a simple target - n00dles for offline mode
-                    const pid = ns.exec(workerScript, server, threads, 1); // Port 1 for target
+                    const pid = ns.exec(script, server, threads, 1); // Port 1 for target
                     if (pid > 0) {
                         workersDeployed++;
                     }

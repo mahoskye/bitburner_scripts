@@ -10,10 +10,12 @@ export const FILES = {
   AUGMENTATION_PLAN: '/data/augmentation-plan.txt',
   REPUTATION_PLAN: '/data/reputation-plan.txt',
   DEBUG_LOGS: '/data/debug/',
+  LAST_TARGET: '/data/last-target.txt',
 };
 
 export const SCRIPTS = {
   WORKER: '/modules/hacking/worker.js',
+  HOME_WORKER: '/modules/hacking/home-worker.js',
   COMMAND: '/modules/hacking/command.js',
   BOOTSTRAP: '/core/bootstrap.js',
   HACKNET_MANAGER: '/modules/resources/hacknet-manager.js',

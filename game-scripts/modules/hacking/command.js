@@ -23,7 +23,7 @@ import { isManagerRunning, registerManagerDeployment, cleanupStaleDeployments, l
 import { PORTS } from '/config/ports.js';
 import { INTERVALS } from '/config/timing.js';
 import { HACK_LEVELS } from '/config/hacking.js';
-import { SCRIPTS } from '/config/paths.js';
+import { SCRIPTS, FILES } from '/config/paths.js';
 import { SETTINGS } from '/config/settings.js';
 
 export async function main(ns) {
@@ -51,6 +51,23 @@ export async function main(ns) {
 
     ns.tprint("Command server started");
     ns.tprint(`  Running on: ${currentServer}`);
+
+    // Restore last target from file if available
+    if (ns.fileExists(FILES.LAST_TARGET)) {
+        try {
+            const savedTargetData = ns.read(FILES.LAST_TARGET);
+            const targetData = JSON.parse(savedTargetData);
+            currentTarget = targetData.target;
+            currentTargetScore = targetData.score || 0;
+
+            // Restore to port so workers pick it up immediately
+            writePort(ns, PORTS.HACK_TARGET, savedTargetData);
+
+            ns.tprint(`Restored last target: ${currentTarget}`);
+        } catch (e) {
+            ns.print(`Failed to restore last target: ${e.message}`);
+        }
+    }
 
     // Open tail window if debug setting enabled
     if (SETTINGS.DEBUG_AUTO_TAIL) {
@@ -163,6 +180,9 @@ export async function main(ns) {
                     score: bestTargetScore
                 };
                 writePort(ns, PORTS.HACK_TARGET, JSON.stringify(targetData));
+
+                // Save target to file for persistence across restarts
+                await ns.write(FILES.LAST_TARGET, JSON.stringify(targetData), "w");
 
                 currentTarget = bestTarget;
                 currentTargetScore = bestTargetScore;

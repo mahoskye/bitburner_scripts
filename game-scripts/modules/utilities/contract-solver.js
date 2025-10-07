@@ -184,7 +184,7 @@ export async function main(ns) {
                 break;
 
             case "Algorithmic Stock Trader IV":
-                // solution = solveStockTrader4(data); // <-- Bad Guy
+                solution = solveStockTrader4(data); // <-- Bad Guy
                 break;
 
             case "Total Ways to Sum II":
