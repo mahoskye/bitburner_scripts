@@ -86,6 +86,9 @@ export async function main(ns) {
                     lifetimeFailed++;
                     ns.print(`✗ Error solving ${contract} on ${server}: ${error.message}`);
                 }
+
+                // Safety sleep between contracts to prevent freezing
+                await ns.sleep(10);
             }
         }
 
@@ -875,16 +878,27 @@ export async function main(ns) {
         const target = data[1];
         const n = digits.length;
         let ans = [];
+        let callCount = 0;
+        const MAX_CALLS = 100000; // Prevent infinite recursion
 
         const bf = (idx, stack) => {
+            callCount++;
+            if (callCount > MAX_CALLS) {
+                return; // Abort if too many calls
+            }
+
             let digit = digits[idx];
             let last = stack[stack.length - 1];
             last.push(digit);
 
             if (idx === n - 1) {
                 let res = stack.map((x) => x.join("")).join("");
-                if (eval(res) === target) {
-                    ans.push(res);
+                try {
+                    if (eval(res) === target) {
+                        ans.push(res);
+                    }
+                } catch (e) {
+                    // Invalid expression, skip
                 }
                 return;
             }
