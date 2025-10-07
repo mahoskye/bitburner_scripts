@@ -329,8 +329,9 @@ export async function main(ns) {
 
                 // Fallback to normal server selection if no purchased server found (or not Go manager)
                 if (!server) {
-                    // Exclude home, command center, and n00dles (workers only)
-                    const excludeServers = ["home", currentServer, "n00dles"];
+                    // Exclude home, command center, n00dles, and purchased servers (being upgraded)
+                    const purchasedServers = ns.getPurchasedServers();
+                    const excludeServers = ["home", currentServer, "n00dles", ...purchasedServers];
                     server = findBestDeploymentServer(ns, ramRequired, excludeServers);
                 }
 
