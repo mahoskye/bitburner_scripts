@@ -219,6 +219,8 @@ export async function main(ns) {
         purchaseNode();
     }
 
+    let hasAnnouncedCompletion = false;
+
     while (true) {
         const numNodes = ns.hacknet.numNodes();
         const available = getAvailableMoney();
@@ -234,10 +236,35 @@ export async function main(ns) {
         ns.print(`Nodes: ${numNodes}/${maxNodes}, Completed: ${completedNodes.size}, Money: ${ns.formatNumber(available)}`);
 
         // Check if all nodes are complete
-        if (numNodes >= maxNodes && completedNodes.size >= maxNodes) {
+        const allComplete = numNodes >= maxNodes && completedNodes.size >= maxNodes;
+        if (allComplete && !hasAnnouncedCompletion) {
             ns.tprint(`SUCCESS: All ${maxNodes} hacknet nodes fully upgraded!`);
-            ns.tprint("Hacknet manager shutting down.");
-            return;
+            ns.tprint("Hacknet manager entering idle mode.");
+            hasAnnouncedCompletion = true;
+        }
+
+        // If all complete, skip processing and just update status
+        if (allComplete) {
+            // Calculate total production rate
+            let totalProduction = 0;
+            for (let i = 0; i < numNodes; i++) {
+                totalProduction += ns.hacknet.getNodeStats(i).production;
+            }
+
+            // Write idle status to port
+            const idleStatusData = {
+                nodes: numNodes,
+                maxNodes: maxNodes,
+                completed: completedNodes.size,
+                production: totalProduction,
+                nextAction: null,
+                money: available,
+                allComplete: true
+            };
+            writePort(ns, PORTS.HACKNET, JSON.stringify(idleStatusData));
+
+            await ns.sleep(CONFIG.UPDATE_INTERVAL);
+            continue;
         }
 
         // Build priority queue with ALL possible actions (upgrades + new nodes)
