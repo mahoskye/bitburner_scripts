@@ -205,6 +205,8 @@ export async function main(ns) {
     // MAIN LOOP
     // ============================================================================
 
+    let hasAnnouncedCompletion = false;
+
     while (true) {
         const money = ns.getServerMoneyAvailable("home");
 
@@ -262,13 +264,17 @@ export async function main(ns) {
                 }
             } else {
                 // All servers maxed
-                ns.tprint("SUCCESS: All servers upgraded to maximum RAM!");
-                ns.tprint("Server manager shutting down.");
+                if (!hasAnnouncedCompletion) {
+                    ns.tprint("SUCCESS: All servers upgraded to maximum RAM!");
+                    ns.tprint("Server manager entering idle mode.");
+                    hasAnnouncedCompletion = true;
+                }
 
-                // Write final status
+                // Write idle status and continue
                 servers = getPurchasedServers();
                 updateStatus(servers, "complete");
-                return;
+                await ns.sleep(CONFIG.CHECK_INTERVAL);
+                continue;
             }
         }
 
