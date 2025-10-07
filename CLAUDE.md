@@ -95,3 +95,6 @@ Legacy structure preserved for reference during refactoring.
 - Modular architecture prioritizes separation of concerns
 - Server info cached in `/servers/server_info.txt` (JSON format)
 - Bitburner API documentation: https://github.com/bitburner-official/bitburner-src/blob/dev/markdown/bitburner.md
+- keep commit messages brief and text only
+- https://github.com/bitburner-official/bitburner-src/tree/stable
+- Ask before attempting a git command. The user prefers to confirm the code is what they asked for before commiting the code
