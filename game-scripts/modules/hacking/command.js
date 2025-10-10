@@ -150,48 +150,66 @@ export async function main(ns) {
             const serverInfoList = accessibleServers.map(hostname => getServerInfo(ns, hostname));
 
             // Find best target
-            const bestTarget = findBestHackTarget(ns, serverInfoList);
+            let bestTarget = findBestHackTarget(ns, serverInfoList);
             const bestTargetInfo = serverInfoList.find(s => s.hostname === bestTarget);
             const bestTargetScore = bestTargetInfo ? calculateHackScore(bestTargetInfo, hackLevel) : 0;
 
+            // EARLY GAME LOCK: Stay on n00dles until hack level 100 for stability
+            if (hackLevel < HACK_LEVELS.TIER2 && bestTarget !== "n00dles") {
+                ns.print(`  Early game (level ${hackLevel}) - locking to n00dles for stability`);
+                bestTarget = "n00dles";
+            }
+
             // Update target if changed
             if (bestTarget !== currentTarget) {
-                // Calculate score improvement to determine switch mode
+                // Calculate score improvement to determine if switch is worth it
+                let shouldSwitch = true;
                 let switchMode = "immediate";
 
                 if (currentTarget && currentTargetScore > 0) {
                     const scoreImprovement = bestTargetScore / currentTargetScore;
+                    const MIN_IMPROVEMENT = 1.5; // Require 50% better to prevent thrashing
 
-                    // Only switch immediately if new target is significantly better (3x+)
-                    // Otherwise, let workers finish their current operation
-                    if (scoreImprovement < 3.0) {
-                        switchMode = "after_operation";
-                        ns.print(`  Score improvement: ${scoreImprovement.toFixed(2)}x - switch after operation`);
+                    // Don't switch unless new target is significantly better
+                    if (scoreImprovement < MIN_IMPROVEMENT) {
+                        shouldSwitch = false;
+                        ns.print(`  Score improvement only ${scoreImprovement.toFixed(2)}x (need ${MIN_IMPROVEMENT}x) - staying on ${currentTarget}`);
                     } else {
-                        ns.print(`  Score improvement: ${scoreImprovement.toFixed(2)}x - switch immediately`);
+                        // Worth switching - determine mode based on how much better
+                        if (scoreImprovement < 3.0) {
+                            switchMode = "after_operation";
+                            ns.print(`  Score improvement: ${scoreImprovement.toFixed(2)}x - switch after operation`);
+                        } else {
+                            ns.print(`  Score improvement: ${scoreImprovement.toFixed(2)}x - switch immediately`);
+                        }
                     }
                 } else {
                     ns.print(`  First target or no score data - switch immediately`);
                 }
 
-                ns.print(`Target changed: ${currentTarget || 'none'} -> ${bestTarget}`);
+                if (!shouldSwitch) {
+                    // Skip the switch, continue with current target
+                    bestTarget = currentTarget;
+                } else {
+                    ns.print(`Target changed: ${currentTarget || 'none'} -> ${bestTarget}`);
 
-                // Write target data with switch mode
-                const targetData = {
-                    target: bestTarget,
-                    mode: switchMode,
-                    score: bestTargetScore
-                };
-                writePort(ns, PORTS.HACK_TARGET, JSON.stringify(targetData));
+                    // Write target data with switch mode
+                    const targetData = {
+                        target: bestTarget,
+                        mode: switchMode,
+                        score: bestTargetScore
+                    };
+                    writePort(ns, PORTS.HACK_TARGET, JSON.stringify(targetData));
 
-                // Save target to file for persistence across restarts
-                await ns.write(FILES.LAST_TARGET, JSON.stringify(targetData), "w");
+                    // Save target to file for persistence across restarts
+                    await ns.write(FILES.LAST_TARGET, JSON.stringify(targetData), "w");
 
-                // Copy file to home so home-worker can restore it after reload
-                await ns.scp(FILES.LAST_TARGET, "home", currentServer);
+                    // Copy file to home so home-worker can restore it after reload
+                    await ns.scp(FILES.LAST_TARGET, "home", currentServer);
 
-                currentTarget = bestTarget;
-                currentTargetScore = bestTargetScore;
+                    currentTarget = bestTarget;
+                    currentTargetScore = bestTargetScore;
+                }
             }
 
             // Deploy workers only if something changed (new servers, new roots, manager deployed)
